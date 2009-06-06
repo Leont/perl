@@ -29,10 +29,8 @@
 #include "EXTERN.h"
 #define PERL_IN_PP_SYS_C
 #include "perl.h"
-#ifndef PERL_MICRO
-#  include "time64.h"
-#  include "time64.c"
-#endif
+#include "time64.h"
+#include "time64.c"
 
 #ifdef I_SHADOW
 /* Shadow password support for solaris - pdo@cs.umd.edu
@@ -244,7 +242,6 @@ S_emulate_eaccess(pTHX_ const char* path, Mode_t mode)
     const Gid_t egid = getegid();
     int res;
 
-    LOCK_CRED_MUTEX;
 #if !defined(HAS_SETREUID) && !defined(HAS_SETRESUID)
     Perl_croak(aTHX_ "switching effective uid is not implemented");
 #else
@@ -290,7 +287,6 @@ S_emulate_eaccess(pTHX_ const char* path, Mode_t mode)
 #endif
 #endif
 	Perl_croak(aTHX_ "leaving effective gid failed");
-    UNLOCK_CRED_MUTEX;
 
     return res;
 }
@@ -804,11 +800,6 @@ PP(pp_tie)
 	    break;
 	case SVt_PVGV:
 	    if (isGV_with_GP(varsv)) {
-#ifdef GV_UNIQUE_CHECK
-		if (GvUNIQUE((const GV *)varsv)) {
-		    Perl_croak(aTHX_ "Attempt to tie unique GV");
-		}
-#endif
 		methname = "TIEHANDLE";
 		how = PERL_MAGIC_tiedscalar;
 		/* For tied filehandles, we apply tiedscalar magic to the IO
@@ -2983,7 +2974,18 @@ PP(pp_ftrread)
     int stat_mode = S_IRUSR;
 
     bool effective = FALSE;
+    char opchar = '?';
     dSP;
+
+    switch (PL_op->op_type) {
+    case OP_FTRREAD:	opchar = 'R'; break;
+    case OP_FTRWRITE:	opchar = 'W'; break;
+    case OP_FTREXEC:	opchar = 'X'; break;
+    case OP_FTEREAD:	opchar = 'r'; break;
+    case OP_FTEWRITE:	opchar = 'w'; break;
+    case OP_FTEEXEC:	opchar = 'x'; break;
+    }
+    tryAMAGICftest(opchar);
 
     STACKED_FTEST_CHECK;
 
@@ -3017,7 +3019,7 @@ PP(pp_ftrread)
 	access_mode = W_OK;
 #endif
 	stat_mode = S_IWUSR;
-	/* Fall through  */
+	/* fall through */
 
     case OP_FTEREAD:
 #ifndef PERL_EFF_ACCESS
@@ -3077,8 +3079,20 @@ PP(pp_ftis)
     dVAR;
     I32 result;
     const int op_type = PL_op->op_type;
+    char opchar = '?';
     dSP;
+
+    switch (op_type) {
+    case OP_FTIS:	opchar = 'e'; break;
+    case OP_FTSIZE:	opchar = 's'; break;
+    case OP_FTMTIME:	opchar = 'M'; break;
+    case OP_FTCTIME:	opchar = 'C'; break;
+    case OP_FTATIME:	opchar = 'A'; break;
+    }
+    tryAMAGICftest(opchar);
+
     STACKED_FTEST_CHECK;
+
     result = my_stat();
     SPAGAIN;
     if (result < 0)
@@ -3115,7 +3129,24 @@ PP(pp_ftrowned)
 {
     dVAR;
     I32 result;
+    char opchar = '?';
     dSP;
+
+    switch (PL_op->op_type) {
+    case OP_FTROWNED:	opchar = 'O'; break;
+    case OP_FTEOWNED:	opchar = 'o'; break;
+    case OP_FTZERO:	opchar = 'z'; break;
+    case OP_FTSOCK:	opchar = 'S'; break;
+    case OP_FTCHR:	opchar = 'c'; break;
+    case OP_FTBLK:	opchar = 'b'; break;
+    case OP_FTFILE:	opchar = 'f'; break;
+    case OP_FTDIR:	opchar = 'd'; break;
+    case OP_FTPIPE:	opchar = 'p'; break;
+    case OP_FTSUID:	opchar = 'u'; break;
+    case OP_FTSGID:	opchar = 'g'; break;
+    case OP_FTSVTX:	opchar = 'k'; break;
+    }
+    tryAMAGICftest(opchar);
 
     /* I believe that all these three are likely to be defined on most every
        system these days.  */
@@ -3133,6 +3164,7 @@ PP(pp_ftrowned)
 #endif
 
     STACKED_FTEST_CHECK;
+
     result = my_stat();
     SPAGAIN;
     if (result < 0)
@@ -3199,8 +3231,13 @@ PP(pp_ftrowned)
 PP(pp_ftlink)
 {
     dVAR;
-    I32 result = my_lstat();
     dSP;
+    I32 result;
+
+    tryAMAGICftest('l');
+    result = my_lstat();
+    SPAGAIN;
+
     if (result < 0)
 	RETPUSHUNDEF;
     if (S_ISLNK(PL_statcache.st_mode))
@@ -3215,6 +3252,8 @@ PP(pp_fttty)
     int fd;
     GV *gv;
     SV *tmpsv = NULL;
+
+    tryAMAGICftest('t');
 
     STACKED_FTEST_CHECK;
 
@@ -3264,6 +3303,8 @@ PP(pp_fttext)
     register SV *sv;
     GV *gv;
     PerlIO *fp;
+
+    tryAMAGICftest(PL_op->op_type == OP_FTTEXT ? 'T' : 'B');
 
     STACKED_FTEST_CHECK;
 
@@ -4026,7 +4067,7 @@ PP(pp_fork)
 
 PP(pp_wait)
 {
-#if (!defined(DOSISH) || defined(OS2) || defined(WIN32)) && !defined(MACOS_TRADITIONAL) && !defined(__LIBCATAMOUNT__)
+#if (!defined(DOSISH) || defined(OS2) || defined(WIN32)) && !defined(__LIBCATAMOUNT__)
     dVAR; dSP; dTARGET;
     Pid_t childpid;
     int argflags;
@@ -4054,7 +4095,7 @@ PP(pp_wait)
 
 PP(pp_waitpid)
 {
-#if (!defined(DOSISH) || defined(OS2) || defined(WIN32)) && !defined(MACOS_TRADITIONAL) && !defined(__LIBCATAMOUNT__)
+#if (!defined(DOSISH) || defined(OS2) || defined(WIN32)) && !defined(__LIBCATAMOUNT__)
     dVAR; dSP; dTARGET;
     const int optype = POPi;
     const Pid_t pid = TOPi;
@@ -4424,15 +4465,9 @@ PP(pp_gmtime)
 {
     dVAR;
     dSP;
-#ifdef PERL_MICRO
-    Time_t when;
-    const struct tm *err;
-    struct tm tmbuf;
-#else
     Time64_T when;
     struct TM tmbuf;
     struct TM *err;
-#endif
     const char *opname = PL_op->op_type == OP_LOCALTIME ? "localtime" : "gmtime";
     static const char * const dayname[] =
 	{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
@@ -4440,45 +4475,26 @@ PP(pp_gmtime)
 	{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
 	 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
-#ifdef PERL_MICRO
-    if (MAXARG < 1)
-	(void)time(&when);
-    else
-	when = (Time_t)SvIVx(POPs);
-
-    if (PL_op->op_type == OP_LOCALTIME)
-	err = localtime(&when);
-    else
-	err = gmtime(&when);
-
-    if (!err)
-	tmbuf = *err;
-#else
     if (MAXARG < 1) {
 	time_t now;
 	(void)time(&now);
 	when = (Time64_T)now;
     }
     else {
-	/* XXX POPq uses an SvIV so it won't work with 32 bit integer scalars
-	   using a double causes an unfortunate loss of accuracy on high numbers.
-	   What we really need is an SvQV.
-	*/
-	double input = POPn;
+	double input = Perl_floor(POPn);
 	when = (Time64_T)input;
-	if( when != input ) {
+	if (when != input && ckWARN(WARN_OVERFLOW)) {
 	    Perl_warner(aTHX_ packWARN(WARN_OVERFLOW),
 			"%s(%.0f) too large", opname, input);
 	}
     }
 
     if (PL_op->op_type == OP_LOCALTIME)
-        err = localtime64_r(&when, &tmbuf);
+        err = S_localtime64_r(&when, &tmbuf);
     else
-	err = gmtime64_r(&when, &tmbuf);
-#endif
+	err = S_gmtime64_r(&when, &tmbuf);
 
-    if( err == NULL ) {
+    if (err == NULL && ckWARN(WARN_OVERFLOW)) {
 	/* XXX %lld broken for quads */
 	Perl_warner(aTHX_ packWARN(WARN_OVERFLOW),
 		    "%s(%.0f) failed", opname, (double)when);
@@ -5328,7 +5344,11 @@ PP(pp_ggrent)
 	PUSHs(sv);
 	if (grent) {
 	    if (which == OP_GGRNAM)
+#if Gid_t_sign <= 0
 		sv_setiv(sv, (IV)grent->gr_gid);
+#else
+		sv_setuv(sv, (UV)grent->gr_gid);
+#endif
 	    else
 		sv_setpv(sv, grent->gr_name);
 	}
@@ -5344,7 +5364,11 @@ PP(pp_ggrent)
 	PUSHs(sv_mortalcopy(&PL_sv_no));
 #endif
 
+#if Gid_t_sign <= 0
 	mPUSHi(grent->gr_gid);
+#else
+	mPUSHu(grent->gr_gid);
+#endif
 
 #if !(defined(_CRAYMPP) && defined(USE_REENTRANT_API))
 	/* In UNICOS/mk (_CRAYMPP) the multithreading

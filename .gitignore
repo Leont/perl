@@ -32,6 +32,12 @@ Makefile.old
 /x2p/makefile
 /x2p/makefile.old
 
+# alternative names on OS X
+/GNUmakefile
+/GNUmakefile.old
+/x2p/GNUmakefile
+/x2p/GNUmakefile.old
+
 # general build products
 *.o
 *.a
@@ -66,15 +72,16 @@ ext.libs
 /generate_uudmap
 /uni.data
 /uudmap.h
+/bitcount.h
 
-ext/Win32API/File/cFile_pc_to_blib
+ext/Win32API-File/cFile_pc_to_blib
 lib/Win32.pm
 lib/Win32API/
 lib/Win32CORE.pm
 lib/CORE/
 
 # test byproducts
-ext/Test/Harness/t/ext/
+ext/Test-Harness/t/ext/
 lib/App/
 lib/Archive/Tar/t/src/long/foo.tbz
 lib/Archive/Tar/t/src/short/foo.tbz
@@ -85,7 +92,17 @@ lib/Test/Harness.pm
 t/rantests
 t/tmp*
 t/perl
+t/test_state
+*.output
 
 # make_ext.pl cleanup scripts
 realclean.sh
 veryclean.sh
+
+# metaconfig needs these three symlinks
+.package
+U
+MANIFEST.new
+
+# ignore vim swap files
+*.swp

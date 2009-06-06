@@ -82,6 +82,9 @@ foreach (@extspec) {
     } elsif (s{^ext/}{}) {
 	# Remove ext/ prefix and /pm_to_blib suffix
 	s{/pm_to_blib$}{};
+	# Targets are given as files on disk, but the extension spec is still
+	# written using /s for each ::
+	tr!-!/!;
     } elsif (s{::}{\/}g) {
 	# Convert :: to /
     } else {
@@ -206,12 +209,13 @@ foreach my $spec (@extspec)  {
     print "\tMaking $mname ($target)\n";
 
     build_extension('ext', $ext_pathname, $up, $perl || "$up/miniperl",
-		    "$up/lib",
+		    "$up/lib", $mname,
 		    [@pass_through, @{$extra_passthrough{$spec} || []}]);
 }
 
 sub build_extension {
-    my ($ext, $ext_dir, $return_dir, $perl, $lib_dir, $pass_through) = @_;
+    my ($ext, $ext_dir, $return_dir, $perl, $lib_dir, $mname, $pass_through)
+	= @_;
     unless (chdir "$ext_dir") {
 	warn "Cannot cd to $ext_dir: $!";
 	return;
@@ -229,6 +233,47 @@ sub build_extension {
     }
     
     if (!-f $makefile) {
+	if (!-f 'Makefile.PL') {
+	    print "\nCreating Makefile.PL in $ext_dir for $mname\n";
+	    # We need to cope well with various possible layouts
+	    my @dirs = split /::/, $mname;
+	    my $leaf = pop @dirs;
+	    my $leafname = "$leaf.pm";
+	    my $pathname = join '/', @dirs, $leafname;
+	    my @locations = ($leafname, $pathname, "lib/$pathname");
+	    my $fromname;
+	    foreach (@locations) {
+		if (-f $_) {
+		    $fromname = $_;
+		    last;
+		}
+	    }
+
+	    unless ($fromname) {
+		die "For $mname tried @locations in in $ext_dir but can't find source";
+	    }
+	    open my $fh, '>', 'Makefile.PL'
+		or die "Can't open Makefile.PL for writing: $!";
+	    print $fh <<"EOM";
+#-*- buffer-read-only: t -*-
+
+# This Makefile.PL was written by $0.
+# It will be deleted automatically by make realclean
+
+use strict;
+use ExtUtils::MakeMaker;
+
+WriteMakefile(
+    NAME          => '$mname',
+    VERSION_FROM  => '$fromname',
+    ABSTRACT_FROM => '$fromname',
+    realclean     => {FILES => 'Makefile.PL'},
+);
+
+# ex: set ro:
+EOM
+	    close $fh or die "Can't close Makefile.PL: $!";
+	}
 	print "\nRunning Makefile.PL in $ext_dir\n";
 
 	# Presumably this can be simplified
@@ -246,7 +291,8 @@ sub build_extension {
 	    my $libd = VMS::Filespec::vmspath($lib_dir);
 	    push @args, "INST_LIB=$libd", "INST_ARCHLIB=$libd";
 	} else {
-	    push @args, 'INSTALLDIRS=perl', 'INSTALLMAN3DIR=none';
+	    push @args, 'INSTALLDIRS=perl', 'INSTALLMAN1DIR=none',
+		'INSTALLMAN3DIR=none';
 	}
 	push @args, @$pass_through;
 	_quote_args(\@args) if $is_VMS;

@@ -103,11 +103,6 @@ Perl_gv_IOadd(pTHX_ register GV *gv)
     }
 
     if (!GvIOp(gv)) {
-#ifdef GV_UNIQUE_CHECK
-        if (GvUNIQUE(gv)) {
-            Perl_croak(aTHX_ "Bad symbol for filehandle (GV is unique)");
-        }
-#endif
 	GvIOp(gv) = newIO();
     }
     return gv;
@@ -1237,10 +1232,22 @@ Perl_gv_fetchpvn_flags(pTHX_ const char *nambeg, STRLEN full_len, I32 flags,
 		if (strEQ(name2, "IG")) {
 		    HV *hv;
 		    I32 i;
-		    if (!PL_psig_ptr) {
-			Newxz(PL_psig_ptr,  SIG_SIZE, SV*);
-			Newxz(PL_psig_name, SIG_SIZE, SV*);
+		    if (!PL_psig_name) {
+			Newxz(PL_psig_name, 2 * SIG_SIZE, SV*);
 			Newxz(PL_psig_pend, SIG_SIZE, int);
+			PL_psig_ptr = PL_psig_name + SIG_SIZE;
+		    } else {
+			/* I think that the only way to get here is to re-use an
+			   embedded perl interpreter, where the previous
+			   use didn't clean up fully because
+			   PL_perl_destruct_level was 0. I'm not sure that we
+			   "support" that, in that I suspect in that scenario
+			   there are sufficient other garbage values left in the
+			   interpreter structure that something else will crash
+			   before we get here. I suspect that this is one of
+			   those "doctor, it hurts when I do this" bugs.  */
+			Zero(PL_psig_name, 2 * SIG_SIZE, SV*);
+			Zero(PL_psig_pend, SIG_SIZE, int);
 		    }
 		    GvMULTI_on(gv);
 		    hv = GvHVn(gv);
@@ -1249,9 +1256,6 @@ Perl_gv_fetchpvn_flags(pTHX_ const char *nambeg, STRLEN full_len, I32 flags,
 			SV * const * const init = hv_fetch(hv, PL_sig_name[i], strlen(PL_sig_name[i]), 1);
 			if (init)
 			    sv_setsv(*init, &PL_sv_undef);
-			PL_psig_ptr[i] = 0;
-			PL_psig_name[i] = 0;
-			PL_psig_pend[i] = 0;
 		    }
 		}
 		break;
@@ -1390,6 +1394,7 @@ Perl_gv_fetchpvn_flags(pTHX_ const char *nambeg, STRLEN full_len, I32 flags,
 	ro_magicalize:
 	    SvREADONLY_on(GvSVn(gv));
 	    /* FALL THROUGH */
+	case '0':
 	case '1':
 	case '2':
 	case '3':
@@ -1983,6 +1988,7 @@ Perl_amagic_call(pTHX_ SV *left, SV *right, int method, int flags)
 	   break;
 	 case int_amg:
 	 case iter_amg:			/* XXXX Eventually should do to_gv. */
+	 case ftest_amg:		/* XXXX Eventually should do to_gv. */
 	     /* FAIL safe */
 	     return NULL;	/* Delegate operation to standard mechanisms. */
 	     break;

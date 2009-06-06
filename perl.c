@@ -29,7 +29,6 @@
 
 #ifdef NETWARE
 #include "nwutil.h"	
-char *nw_get_sitelib(const char *pl);
 #endif
 
 /* XXX If this causes problems, set i_unistd=undef in the hint file.  */
@@ -347,8 +346,7 @@ perl_construct(pTHXx)
 
     PL_stashcache = newHV();
 
-    PL_patchlevel = Perl_newSVpvf(aTHX_ "v%d.%d.%d", (int)PERL_REVISION,
-				  (int)PERL_VERSION, (int)PERL_SUBVERSION);
+    PL_patchlevel = newSVpvs("v" PERL_VERSION_STRING);
 
 #ifdef HAS_MMAP
     if (!PL_mmap_page_size) {
@@ -1230,12 +1228,9 @@ perl_destruct(pTHXx)
     Safefree(PL_reg_poscache);
     free_tied_hv_pool();
     Safefree(PL_op_mask);
-    Safefree(PL_psig_ptr);
-    PL_psig_ptr = (SV**)NULL;
     Safefree(PL_psig_name);
     PL_psig_name = (SV**)NULL;
-    Safefree(PL_bitcount);
-    PL_bitcount = NULL;
+    PL_psig_ptr = (SV**)NULL;
     Safefree(PL_psig_pend);
     PL_psig_pend = (int*)NULL;
     PL_formfeed = NULL;
@@ -1626,6 +1621,15 @@ perl_parse(pTHXx_ XSINIT_t xsinit, int argc, char **argv, char **env)
     return ret;
 }
 
+#define INCPUSH_UNSHIFT			0x01
+#define INCPUSH_ADD_OLD_VERS		0x02
+#define INCPUSH_ADD_VERSIONED_SUB_DIRS	0x04
+#define INCPUSH_ADD_ARCHONLY_SUB_DIRS	0x08
+#define INCPUSH_NOT_BASEDIR		0x10
+#define INCPUSH_CAN_RELOCATE		0x20
+#define INCPUSH_ADD_SUB_DIRS	\
+    (INCPUSH_ADD_VERSIONED_SUB_DIRS|INCPUSH_ADD_ARCHONLY_SUB_DIRS)
+
 STATIC void *
 S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
 {
@@ -1635,7 +1639,6 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
     char **argv = PL_origargv;
     const char *scriptname = NULL;
     VOL bool dosearch = FALSE;
-    register SV *sv;
     register char c;
     const char *cddir = NULL;
 #ifdef USE_SITECUSTOMIZE
@@ -1647,8 +1650,6 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
     SvGROW(linestr_sv, 80);
     sv_setpvs(linestr_sv,"");
 
-    sv = newSVpvs("");		/* first used for -I flags */
-    SAVEFREESV(sv);
     init_main_stash();
 
     {
@@ -1707,11 +1708,6 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
 	    PL_minus_E = TRUE;
 	    /* FALL THROUGH */
 	case 'e':
-#ifdef MACOS_TRADITIONAL
-	    /* ignore -e for Dev:Pseudo argument */
-	    if (argv[1] && !strcmp(argv[1], "Dev:Pseudo"))
-		break;
-#endif
 	    forbid_setid('e', FALSE);
 	    if (!PL_e_script) {
 		PL_e_script = newSVpvs("");
@@ -1742,12 +1738,7 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
 	    }
 	    if (s && *s) {
 		STRLEN len = strlen(s);
-		const char * const p = savepvn(s, len);
-		incpush(p, TRUE, TRUE, FALSE, FALSE, FALSE);
-		sv_catpvs(sv, "-I");
-		sv_catpvn(sv, p, len);
-		sv_catpvs(sv, " ");
-		Safefree(p);
+		incpush(s, len, INCPUSH_ADD_SUB_DIRS|INCPUSH_ADD_OLD_VERS);
 	    }
 	    else
 		Perl_croak(aTHX_ "No directory specified for -I");
@@ -1924,7 +1915,7 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
 		d = s;
 		if (!*s)
 		    break;
-		if (!strchr("CDIMUdmtw", *s))
+		if (!strchr("CDIMUdmtwW", *s))
 		    Perl_croak(aTHX_ "Illegal switch in PERL5OPT: -%c", *s);
 		while (++s && *s) {
 		    if (isSPACE(*s)) {
@@ -2003,11 +1994,7 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
 #  endif
 #endif
 
-	if (PL_doextract
-#ifdef MACOS_TRADITIONAL
-	    || gMacPerl_AlwaysExtract
-#endif
-	    ) {
+	if (PL_doextract) {
 
 	    /* This will croak if suidscript is true, as -x cannot be used with
 	       setuid scripts.  */
@@ -2029,7 +2016,6 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
 
     boot_core_PerlIO();
     boot_core_UNIVERSAL();
-    boot_core_xsutils();
     boot_core_mro();
 
     if (xsinit)
@@ -2148,16 +2134,6 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
     /* now parse the script */
 
     SETERRNO(0,SS_NORMAL);
-#ifdef MACOS_TRADITIONAL
-    if (gMacPerl_SyntaxError = (yyparse() || PL_parser->error_count)) {
-	if (PL_minus_c)
-	    Perl_croak(aTHX_ "%s had compilation errors.\n", MacPerl_MPWFileName(PL_origfilename));
-	else {
-	    Perl_croak(aTHX_ "Execution of %s aborted due to compilation errors.\n",
-		       MacPerl_MPWFileName(PL_origfilename));
-	}
-    }
-#else
     if (yyparse() || PL_parser->error_count) {
 	if (PL_minus_c)
 	    Perl_croak(aTHX_ "%s had compilation errors.\n", PL_origfilename);
@@ -2166,7 +2142,6 @@ S_parse_body(pTHX_ char **env, XSINIT_t xsinit)
 		       PL_origfilename);
 	}
     }
-#endif
     CopLINE_set(PL_curcop, 0);
     PL_curstash = PL_defstash;
     if (PL_e_script) {
@@ -2284,13 +2259,7 @@ S_run_body(pTHX_ I32 oldscope)
 #endif
 
 	if (PL_minus_c) {
-#ifdef MACOS_TRADITIONAL
-	    PerlIO_printf(Perl_error_log, "%s%s syntax OK\n",
-		(gMacPerl_ErrorFormat ? "# " : ""),
-		MacPerl_MPWFileName(PL_origfilename));
-#else
 	    PerlIO_printf(Perl_error_log, "%s syntax OK\n", PL_origfilename);
-#endif
 	    my_exit(0);
 	}
 	if (PERLDB_SINGLE && PL_DBsingle)
@@ -3092,9 +3061,8 @@ Perl_moreswitches(pTHX_ const char *s)
 		while (isSPACE(*p))
 		    p++;
 	    } while (*p && *p != '-');
-	    e = savepvn(s, e-s);
-	    incpush(e, TRUE, TRUE, FALSE, FALSE, TRUE);
-	    Safefree(e);
+	    incpush(s, e-s,
+		    INCPUSH_ADD_SUB_DIRS|INCPUSH_ADD_OLD_VERS|INCPUSH_UNSHIFT);
 	    s = p;
 	    if (*s == '-')
 		s++;
@@ -3205,9 +3173,6 @@ Perl_moreswitches(pTHX_ const char *s)
 	s++;
 	return s;
     case 'u':
-#ifdef MACOS_TRADITIONAL
-	Perl_croak(aTHX_ "Believe me, you don't want to use \"-u\" on a Macintosh");
-#endif
 	PL_do_undump = TRUE;
 	s++;
 	return s;
@@ -3266,11 +3231,6 @@ Perl_moreswitches(pTHX_ const char *s)
 
 	PerlIO_printf(PerlIO_stdout(),
 		      "\n\nCopyright 1987-2009, Larry Wall\n");
-#ifdef MACOS_TRADITIONAL
-	PerlIO_printf(PerlIO_stdout(),
-		      "\nMac OS port Copyright 1991-2002, Matthias Neeracher;\n"
-		      "maintained by Chris Nandor\n");
-#endif
 #ifdef MSDOS
 	PerlIO_printf(PerlIO_stdout(),
 		      "\nMS-DOS port Copyright (c) 1989, 1990, Diomidis Spinellis\n");
@@ -3667,38 +3627,14 @@ S_find_beginning(pTHX_ SV* linestr_sv, PerlIO *rsfp)
     dVAR;
     const char *s;
     register const char *s2;
-#ifdef MACOS_TRADITIONAL
-    int maclines = 0;
-#endif
 
     PERL_ARGS_ASSERT_FIND_BEGINNING;
 
     /* skip forward in input to the real script? */
 
-#ifdef MACOS_TRADITIONAL
-    /* Since the Mac OS does not honor #! arguments for us, we do it ourselves */
-
-    while (PL_doextract || gMacPerl_AlwaysExtract) {
-	if ((s = sv_gets(linestr_sv, rsfp, 0)) == NULL) {
-	    if (!gMacPerl_AlwaysExtract)
-		Perl_croak(aTHX_ "No Perl script found in input\n");
-
-	    if (PL_doextract)			/* require explicit override ? */
-		if (!OverrideExtract(PL_origfilename))
-		    Perl_croak(aTHX_ "User aborted script\n");
-		else
-		    PL_doextract = FALSE;
-
-	    /* Pater peccavi, file does not have #! */
-	    PerlIO_rewind(rsfp);
-
-	    break;
-	}
-#else
     while (PL_doextract) {
 	if ((s = sv_gets(linestr_sv, rsfp, 0)) == NULL)
 	    Perl_croak(aTHX_ "No Perl script found in input\n");
-#endif
 	s2 = s;
 	if (*s == '#' && s[1] == '!' && ((s = instr(s,"perl")) || (s = instr(s2,"PERL")))) {
 	    PerlIO_ungetc(rsfp, '\n');		/* to keep line count right */
@@ -3713,20 +3649,6 @@ S_find_beginning(pTHX_ SV* linestr_sv, PerlIO *rsfp)
 		    while ((s = moreswitches(s)))
 			;
 	    }
-#ifdef MACOS_TRADITIONAL
-	    /* We are always searching for the #!perl line in MacPerl,
-	     * so if we find it, still keep the line count correct
-	     * by counting lines we already skipped over
-	     */
-	    for (; maclines > 0 ; maclines--)
-		PerlIO_ungetc(rsfp, '\n');
-
-	    break;
-
-	/* gMacPerl_AlwaysExtract is false in MPW tool */
-	} else if (gMacPerl_AlwaysExtract) {
-	    ++maclines;
-#endif
 	}
     }
 }
@@ -4012,17 +3934,7 @@ S_init_postdump_symbols(pTHX_ register int argc, register char **argv, register 
     init_argv_symbols(argc,argv);
 
     if ((tmpgv = gv_fetchpvs("0", GV_ADD|GV_NOTQUAL, SVt_PV))) {
-#ifdef MACOS_TRADITIONAL
-	/* $0 is not majick on a Mac */
-	sv_setpv(GvSV(tmpgv),MacPerl_MPWFileName(PL_origfilename));
-#else
 	sv_setpv(GvSV(tmpgv),PL_origfilename);
-	{
-	    GV * const gv = gv_fetchpv("0", GV_ADD, SVt_PV);
-	    if (gv)
-		sv_magic(GvSV(gv), MUTABLE_SV(gv), PERL_MAGIC_sv, "0", 1);
-	}
-#endif
     }
     if ((PL_envgv = gv_fetchpvs("ENV", GV_ADD|GV_NOTQUAL, SVt_PVHV))) {
 	HV *hv;
@@ -4091,23 +4003,33 @@ STATIC void
 S_init_perllib(pTHX)
 {
     dVAR;
-    char *s;
+#ifndef VMS
+    const char *perl5lib = NULL;
+#endif
+    const char *s;
+#ifdef WIN32
+    STRLEN len;
+#endif
+
     if (!PL_tainting) {
 #ifndef VMS
-	s = PerlEnv_getenv("PERL5LIB");
+	perl5lib = PerlEnv_getenv("PERL5LIB");
 /*
  * It isn't possible to delete an environment variable with
  * PERL_USE_SAFE_PUTENV set unless unsetenv() is also available, so in that
  * case we treat PERL5LIB as undefined if it has a zero-length value.
  */
 #if defined(PERL_USE_SAFE_PUTENV) && ! defined(HAS_UNSETENV)
-	if (s && *s != '\0')
+	if (perl5lib && *perl5lib != '\0')
 #else
-	if (s)
+	if (perl5lib)
 #endif
-	    incpush(s, TRUE, TRUE, TRUE, FALSE, FALSE);
-	else
-	    incpush(PerlEnv_getenv("PERLLIB"), FALSE, FALSE, TRUE, FALSE, FALSE);
+	    incpush_use_sep(perl5lib, 0, INCPUSH_ADD_SUB_DIRS);
+	else {
+	    s = PerlEnv_getenv("PERLLIB");
+	    if (s)
+		incpush_use_sep(s, 0, 0);
+	}
 #else /* VMS */
 	/* Treat PERL5?LIB as a possible search list logical name -- the
 	 * "natural" VMS idiom for a Unix path string.  We allow each
@@ -4116,9 +4038,13 @@ S_init_perllib(pTHX)
 	char buf[256];
 	int idx = 0;
 	if (my_trnlnm("PERL5LIB",buf,0))
-	    do { incpush(buf,TRUE,TRUE,TRUE,FALSE, FALSE); } while (my_trnlnm("PERL5LIB",buf,++idx));
-	else
-	    while (my_trnlnm("PERLLIB",buf,idx++)) incpush(buf,FALSE,FALSE,TRUE,FALSE, FALSE);
+	    do {
+		incpush_use_sep(buf, 0, INCPUSH_ADD_SUB_DIRS);
+	    } while (my_trnlnm("PERL5LIB",buf,++idx));
+	else {
+	    while (my_trnlnm("PERLLIB",buf,idx++))
+		incpush_use_sep(buf, 0, 0);
+	}
 #endif /* VMS */
     }
 
@@ -4126,92 +4052,135 @@ S_init_perllib(pTHX)
     ARCHLIB PRIVLIB SITEARCH SITELIB VENDORARCH and VENDORLIB
 */
 #ifdef APPLLIB_EXP
-    incpush(APPLLIB_EXP, TRUE, TRUE, TRUE, TRUE, FALSE);
-#endif
-
-#ifdef ARCHLIB_EXP
-    incpush(ARCHLIB_EXP, FALSE, FALSE, TRUE, TRUE, FALSE);
-#endif
-#ifdef MACOS_TRADITIONAL
-    {
-	Stat_t tmpstatbuf;
-    	SV * privdir = newSV(0);
-	char * macperl = PerlEnv_getenv("MACPERL");
-	
-	if (!macperl)
-	    macperl = "";
-	
-	Perl_sv_setpvf(aTHX_ privdir, "%slib:", macperl);
-	if (PerlLIO_stat(SvPVX(privdir), &tmpstatbuf) >= 0 && S_ISDIR(tmpstatbuf.st_mode))
-	    incpush(SvPVX(privdir), TRUE, FALSE, TRUE, FALSE, FALSE);
-	Perl_sv_setpvf(aTHX_ privdir, "%ssite_perl:", macperl);
-	if (PerlLIO_stat(SvPVX(privdir), &tmpstatbuf) >= 0 && S_ISDIR(tmpstatbuf.st_mode))
-	    incpush(SvPVX(privdir), TRUE, FALSE, TRUE, FALSE, FALSE);
-	
-   	SvREFCNT_dec(privdir);
-    }
-    if (!PL_tainting)
-	incpush(":", FALSE, FALSE, FALSE, FALSE, FALSE);
-#else
-#ifndef PRIVLIB_EXP
-#  define PRIVLIB_EXP "/usr/local/lib/perl5:/usr/local/lib/perl"
-#endif
-#if defined(WIN32)
-    incpush(PRIVLIB_EXP, TRUE, FALSE, TRUE, TRUE, FALSE);
-#else
-    incpush(PRIVLIB_EXP, FALSE, FALSE, TRUE, TRUE, FALSE);
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(APPLLIB_EXP),
+		      INCPUSH_ADD_SUB_DIRS|INCPUSH_CAN_RELOCATE);
 #endif
 
 #ifdef SITEARCH_EXP
     /* sitearch is always relative to sitelib on Windows for
      * DLL-based path intuition to work correctly */
 #  if !defined(WIN32)
-    incpush(SITEARCH_EXP, FALSE, FALSE, TRUE, TRUE, FALSE);
+	S_incpush_use_sep(aTHX_ STR_WITH_LEN(SITEARCH_EXP),
+			  INCPUSH_CAN_RELOCATE);
 #  endif
 #endif
 
 #ifdef SITELIB_EXP
 #  if defined(WIN32)
     /* this picks up sitearch as well */
-    incpush(SITELIB_EXP, TRUE, FALSE, TRUE, TRUE, FALSE);
+	s = win32_get_sitelib(PERL_FS_VERSION, &len);
+	if (s)
+	    incpush_use_sep(s, len, INCPUSH_ADD_SUB_DIRS|INCPUSH_CAN_RELOCATE);
 #  else
-    incpush(SITELIB_EXP, FALSE, FALSE, TRUE, TRUE, FALSE);
+	S_incpush_use_sep(aTHX_ STR_WITH_LEN(SITELIB_EXP), INCPUSH_CAN_RELOCATE);
 #  endif
-#endif
-
-#if defined(SITELIB_STEM) && defined(PERL_INC_VERSION_LIST)
-    /* Search for version-specific dirs below here */
-    incpush(SITELIB_STEM, FALSE, TRUE, TRUE, TRUE, FALSE);
 #endif
 
 #ifdef PERL_VENDORARCH_EXP
     /* vendorarch is always relative to vendorlib on Windows for
      * DLL-based path intuition to work correctly */
 #  if !defined(WIN32)
-    incpush(PERL_VENDORARCH_EXP, FALSE, FALSE, TRUE, TRUE, FALSE);
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(PERL_VENDORARCH_EXP),
+		      INCPUSH_CAN_RELOCATE);
 #  endif
 #endif
 
 #ifdef PERL_VENDORLIB_EXP
 #  if defined(WIN32)
-    incpush(PERL_VENDORLIB_EXP, TRUE, FALSE, TRUE, TRUE, FALSE);	/* this picks up vendorarch as well */
+    /* this picks up vendorarch as well */
+	s = win32_get_vendorlib(PERL_FS_VERSION, &len);
+	if (s)
+	    incpush_use_sep(s, len, INCPUSH_ADD_SUB_DIRS|INCPUSH_CAN_RELOCATE);
 #  else
-    incpush(PERL_VENDORLIB_EXP, FALSE, FALSE, TRUE, TRUE, FALSE);
+	S_incpush_use_sep(aTHX_ STR_WITH_LEN(PERL_VENDORLIB_EXP),
+			  INCPUSH_CAN_RELOCATE);
 #  endif
 #endif
 
-#if defined(PERL_VENDORLIB_STEM) && defined(PERL_INC_VERSION_LIST)
-    /* Search for version-specific dirs below here */
-    incpush(PERL_VENDORLIB_STEM, FALSE, TRUE, TRUE, TRUE, FALSE);
+#ifdef ARCHLIB_EXP
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(ARCHLIB_EXP), INCPUSH_CAN_RELOCATE);
+#endif
+
+#ifndef PRIVLIB_EXP
+#  define PRIVLIB_EXP "/usr/local/lib/perl5:/usr/local/lib/perl"
+#endif
+
+#if defined(WIN32)
+    s = win32_get_privlib(PERL_FS_VERSION, &len);
+    if (s)
+	incpush_use_sep(s, len, INCPUSH_ADD_SUB_DIRS|INCPUSH_CAN_RELOCATE);
+#else
+#  ifdef NETWARE
+    S_incpush_use_sep(aTHX_ PRIVLIB_EXP, 0, INCPUSH_CAN_RELOCATE);
+#  else
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(PRIVLIB_EXP), INCPUSH_CAN_RELOCATE);
+#  endif
 #endif
 
 #ifdef PERL_OTHERLIBDIRS
-    incpush(PERL_OTHERLIBDIRS, TRUE, TRUE, TRUE, TRUE, FALSE);
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(PERL_OTHERLIBDIRS),
+		      INCPUSH_ADD_VERSIONED_SUB_DIRS|INCPUSH_NOT_BASEDIR
+		      |INCPUSH_CAN_RELOCATE);
+#endif
+
+    if (!PL_tainting) {
+#ifndef VMS
+/*
+ * It isn't possible to delete an environment variable with
+ * PERL_USE_SAFE_PUTENV set unless unsetenv() is also available, so in that
+ * case we treat PERL5LIB as undefined if it has a zero-length value.
+ */
+#if defined(PERL_USE_SAFE_PUTENV) && ! defined(HAS_UNSETENV)
+	if (perl5lib && *perl5lib != '\0')
+#else
+	if (perl5lib)
+#endif
+	    incpush_use_sep(perl5lib, 0,
+			    INCPUSH_ADD_OLD_VERS|INCPUSH_NOT_BASEDIR);
+#else /* VMS */
+	/* Treat PERL5?LIB as a possible search list logical name -- the
+	 * "natural" VMS idiom for a Unix path string.  We allow each
+	 * element to be a set of |-separated directories for compatibility.
+	 */
+	char buf[256];
+	int idx = 0;
+	if (my_trnlnm("PERL5LIB",buf,0))
+	    do {
+		incpush_use_sep(buf, 0,
+				INCPUSH_ADD_OLD_VERS|INCPUSH_NOT_BASEDIR);
+	    } while (my_trnlnm("PERL5LIB",buf,++idx));
+#endif /* VMS */
+    }
+
+/* Use the ~-expanded versions of APPLLIB (undocumented),
+    ARCHLIB PRIVLIB SITEARCH SITELIB VENDORARCH and VENDORLIB
+*/
+#ifdef APPLLIB_EXP
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(APPLLIB_EXP), INCPUSH_ADD_OLD_VERS
+		      |INCPUSH_NOT_BASEDIR|INCPUSH_CAN_RELOCATE);
+#endif
+
+#if defined(SITELIB_STEM) && defined(PERL_INC_VERSION_LIST)
+    /* Search for version-specific dirs below here */
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(SITELIB_STEM),
+		      INCPUSH_ADD_OLD_VERS|INCPUSH_CAN_RELOCATE);
+#endif
+
+
+#if defined(PERL_VENDORLIB_STEM) && defined(PERL_INC_VERSION_LIST)
+    /* Search for version-specific dirs below here */
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(PERL_VENDORLIB_STEM),
+		      INCPUSH_ADD_OLD_VERS|INCPUSH_CAN_RELOCATE);
+#endif
+
+#ifdef PERL_OTHERLIBDIRS
+    S_incpush_use_sep(aTHX_ STR_WITH_LEN(PERL_OTHERLIBDIRS),
+		      INCPUSH_ADD_OLD_VERS|INCPUSH_ADD_ARCHONLY_SUB_DIRS
+		      |INCPUSH_CAN_RELOCATE);
 #endif
 
     if (!PL_tainting)
-	incpush(".", FALSE, FALSE, FALSE, FALSE, FALSE);
-#endif /* MACOS_TRADITIONAL */
+	S_incpush(aTHX_ STR_WITH_LEN("."), 0);
 }
 
 #if defined(DOSISH) || defined(EPOC) || defined(__SYMBIAN32__)
@@ -4220,11 +4189,7 @@ S_init_perllib(pTHX)
 #  if defined(VMS)
 #    define PERLLIB_SEP '|'
 #  else
-#    if defined(MACOS_TRADITIONAL)
-#      define PERLLIB_SEP ','
-#    else
-#      define PERLLIB_SEP ':'
-#    endif
+#    define PERLLIB_SEP ':'
 #  endif
 #endif
 #ifndef PERLLIB_MANGLE
@@ -4235,7 +4200,7 @@ S_init_perllib(pTHX)
    Generate a new SV if we do this, to save needing to copy the SV we push
    onto @INC  */
 STATIC SV *
-S_incpush_if_exists(pTHX_ SV *dir)
+S_incpush_if_exists(pTHX_ AV *const av, SV *dir, SV *const stem)
 {
     dVAR;
     Stat_t tmpstatbuf;
@@ -4244,59 +4209,60 @@ S_incpush_if_exists(pTHX_ SV *dir)
 
     if (PerlLIO_stat(SvPVX_const(dir), &tmpstatbuf) >= 0 &&
 	S_ISDIR(tmpstatbuf.st_mode)) {
-	av_push(GvAVn(PL_incgv), dir);
-	dir = newSV(0);
+	av_push(av, dir);
+	dir = newSVsv(stem);
+    } else {
+	/* Truncate dir back to stem.  */
+	SvCUR_set(dir, SvCUR(stem));
     }
     return dir;
 }
 
 STATIC void
-S_incpush(pTHX_ const char *dir, bool addsubdirs, bool addoldvers, bool usesep,
-	  bool canrelocate, bool unshift)
+S_incpush(pTHX_ const char *const dir, STRLEN len, U32 flags)
 {
     dVAR;
-    SV *subdir = NULL;
-    const char *p = dir;
-
-    if (!p || !*p)
-	return;
-
-    if (addsubdirs || addoldvers) {
-	subdir = newSV(0);
-    }
-
-    /* Break at all separators */
-    while (p && *p) {
-	SV *libdir = newSV(0);
-        const char *s;
-
-	/* skip any consecutive separators */
-	if (usesep) {
-	    while ( *p == PERLLIB_SEP ) {
-		/* Uncomment the next line for PATH semantics */
-		/* av_push(GvAVn(PL_incgv), newSVpvs(".")); */
-		p++;
-	    }
-	}
-
-	if ( usesep && (s = strchr(p, PERLLIB_SEP)) != NULL ) {
-	    sv_setpvn(libdir, PERLLIB_MANGLE(p, (STRLEN)(s - p)),
-		      (STRLEN)(s - p));
-	    p = s + 1;
-	}
-	else {
-	    sv_setpv(libdir, PERLLIB_MANGLE(p, 0));
-	    p = NULL;	/* break out */
-	}
-#ifdef MACOS_TRADITIONAL
-	if (!strchr(SvPVX(libdir), ':')) {
-	    char buf[256];
-
-	    sv_setpv(libdir, MacPerl_CanonDir(SvPVX(libdir), buf, 0));
-	}
-	if (SvPVX(libdir)[SvCUR(libdir)-1] != ':')
-	    sv_catpvs(libdir, ":");
+    const U8 using_sub_dirs
+	= (U8)flags & (INCPUSH_ADD_VERSIONED_SUB_DIRS
+		       |INCPUSH_ADD_ARCHONLY_SUB_DIRS|INCPUSH_ADD_OLD_VERS);
+    const U8 add_versioned_sub_dirs
+	= (U8)flags & INCPUSH_ADD_VERSIONED_SUB_DIRS;
+    const U8 add_archonly_sub_dirs
+	= (U8)flags & INCPUSH_ADD_ARCHONLY_SUB_DIRS;
+#ifdef PERL_INC_VERSION_LIST
+    const U8 addoldvers  = (U8)flags & INCPUSH_ADD_OLD_VERS;
 #endif
+    const U8 canrelocate = (U8)flags & INCPUSH_CAN_RELOCATE;
+    const U8 unshift     = (U8)flags & INCPUSH_UNSHIFT;
+    const U8 push_basedir = (flags & INCPUSH_NOT_BASEDIR) ? 0 : 1;
+    AV *const inc = GvAVn(PL_incgv);
+
+    PERL_ARGS_ASSERT_INCPUSH;
+    assert(len > 0);
+
+    /* Could remove this vestigial extra block, if we don't mind a lot of
+       re-indenting diff noise.  */
+    {
+	SV *libdir;
+	/* Change 20189146be79a0596543441fa369c6bf7f85103f, to fix RT#6665,
+	   arranged to unshift #! line -I onto the front of @INC. However,
+	   -I can add version and architecture specific libraries, and they
+	   need to go first. The old code assumed that it was always
+	   pushing. Hence to make it work, need to push the architecture
+	   (etc) libraries onto a temporary array, then "unshift" that onto
+	   the front of @INC.  */
+	AV *const av = (using_sub_dirs) ? (unshift ? newAV() : inc) : NULL;
+
+	if (len) {
+	    /* I am not convinced that this is valid when PERLLIB_MANGLE is
+	       defined to so something (in os2/os2.c), but the code has been
+	       this way, ignoring any possible changed of length, since
+	       760ac839baf413929cd31cc32ffd6dba6b781a81 (5.003_02) so I'll leave
+	       it be.  */
+	    libdir = newSVpvn(PERLLIB_MANGLE(dir, len), len);
+	} else {
+	    libdir = newSVpv(PERLLIB_MANGLE(dir, 0), 0);
+	}
 
 	/* Do the if() outside the #ifdef to avoid warnings about an unused
 	   parameter.  */
@@ -4401,7 +4367,8 @@ S_incpush(pTHX_ const char *dir, bool addsubdirs, bool addoldvers, bool usesep,
 	 * BEFORE pushing libdir onto @INC we may first push version- and
 	 * archname-specific sub-directories.
 	 */
-	if (addsubdirs || addoldvers) {
+	if (using_sub_dirs) {
+	    SV *subdir;
 #ifdef PERL_INC_VERSION_LIST
 	    /* Configure terminates PERL_INC_VERSION_LIST with a NULL */
 	    const char * const incverlist[] = { PERL_INC_VERSION_LIST };
@@ -4410,6 +4377,7 @@ S_incpush(pTHX_ const char *dir, bool addsubdirs, bool addoldvers, bool usesep,
 #ifdef VMS
 	    char *unix;
 	    STRLEN len;
+
 
 	    if ((unix = tounixspec_ts(SvPV(libdir,len),NULL)) != NULL) {
 		len = strlen(unix);
@@ -4421,64 +4389,104 @@ S_incpush(pTHX_ const char *dir, bool addsubdirs, bool addoldvers, bool usesep,
 		              "Failed to unixify @INC element \"%s\"\n",
 			      SvPV(libdir,len));
 #endif
-	    if (addsubdirs) {
-#ifdef MACOS_TRADITIONAL
-#define PERL_AV_SUFFIX_FMT	""
-#define PERL_ARCH_FMT 		"%s:"
-#define PERL_ARCH_FMT_PATH	PERL_FS_VER_FMT PERL_AV_SUFFIX_FMT
-#else
-#define PERL_AV_SUFFIX_FMT 	"/"
-#define PERL_ARCH_FMT 		"/%s"
-#define PERL_ARCH_FMT_PATH	PERL_AV_SUFFIX_FMT PERL_FS_VER_FMT
-#endif
+
+	    subdir = newSVsv(libdir);
+
+	    if (add_versioned_sub_dirs) {
 		/* .../version/archname if -d .../version/archname */
-		Perl_sv_setpvf(aTHX_ subdir, "%"SVf PERL_ARCH_FMT_PATH PERL_ARCH_FMT,
-			       SVfARG(libdir),
-			       (int)PERL_REVISION, (int)PERL_VERSION,
-			       (int)PERL_SUBVERSION, ARCHNAME);
-		subdir = S_incpush_if_exists(aTHX_ subdir);
+		sv_catpvs(subdir, "/" PERL_FS_VERSION "/" ARCHNAME);
+		subdir = S_incpush_if_exists(aTHX_ av, subdir, libdir);
 
 		/* .../version if -d .../version */
-		Perl_sv_setpvf(aTHX_ subdir, "%"SVf PERL_ARCH_FMT_PATH,
-			       SVfARG(libdir),
-			       (int)PERL_REVISION, (int)PERL_VERSION,
-			       (int)PERL_SUBVERSION);
-		subdir = S_incpush_if_exists(aTHX_ subdir);
-
-		/* .../archname if -d .../archname */
-		Perl_sv_setpvf(aTHX_ subdir, "%"SVf PERL_ARCH_FMT,
-			       SVfARG(libdir), ARCHNAME);
-		subdir = S_incpush_if_exists(aTHX_ subdir);
-
+		sv_catpvs(subdir, "/" PERL_FS_VERSION);
+		subdir = S_incpush_if_exists(aTHX_ av, subdir, libdir);
 	    }
 
 #ifdef PERL_INC_VERSION_LIST
 	    if (addoldvers) {
 		for (incver = incverlist; *incver; incver++) {
 		    /* .../xxx if -d .../xxx */
-		    Perl_sv_setpvf(aTHX_ subdir, "%"SVf PERL_ARCH_FMT,
-				   SVfARG(libdir), *incver);
-		    subdir = S_incpush_if_exists(aTHX_ subdir);
+		    Perl_sv_catpvf(aTHX_ subdir, "/%s", *incver);
+		    subdir = S_incpush_if_exists(aTHX_ av, subdir, libdir);
 		}
 	    }
 #endif
+
+	    if (add_archonly_sub_dirs) {
+		/* .../archname if -d .../archname */
+		sv_catpvs(subdir, "/" ARCHNAME);
+		subdir = S_incpush_if_exists(aTHX_ av, subdir, libdir);
+
+	    }
+
+	    assert (SvREFCNT(subdir) == 1);
+	    SvREFCNT_dec(subdir);
 	}
 
 	/* finally add this lib directory at the end of @INC */
 	if (unshift) {
-	    av_unshift( GvAVn( PL_incgv ), 1 );
-	    av_store( GvAVn( PL_incgv ), 0, libdir );
+	    U32 extra = av_len(av) + 1;
+	    av_unshift(inc, extra + push_basedir);
+	    if (push_basedir)
+		av_store(inc, extra, libdir);
+	    while (extra--) {
+		/* av owns a reference, av_store() expects to be donated a
+		   reference, and av expects to be sane when it's cleared.
+		   If I wanted to be naughty and wrong, I could peek inside the
+		   implementation of av_clear(), realise that it uses
+		   SvREFCNT_dec() too, so av's array could be a run of NULLs,
+		   and so directly steal from it (with a memcpy() to inc, and
+		   then memset() to NULL them out. But people copy code from the
+		   core expecting it to be best practise, so let's use the API.
+		   Although studious readers will note that I'm not checking any
+		   return codes.  */
+		av_store(inc, extra, SvREFCNT_inc(*av_fetch(av, extra, FALSE)));
+	    }
+	    SvREFCNT_dec(av);
 	}
-	else {
-	    av_push(GvAVn(PL_incgv), libdir);
+	else if (push_basedir) {
+	    av_push(inc, libdir);
 	}
-    }
-    if (subdir) {
-	assert (SvREFCNT(subdir) == 1);
-	SvREFCNT_dec(subdir);
+
+	if (!push_basedir) {
+	    assert (SvREFCNT(libdir) == 1);
+	    SvREFCNT_dec(libdir);
+	}
     }
 }
 
+STATIC void
+S_incpush_use_sep(pTHX_ const char *p, STRLEN len, U32 flags)
+{
+    const char *s;
+    const char *end;
+    /* This logic has been broken out from S_incpush(). It may be possible to
+       simplify it.  */
+
+    PERL_ARGS_ASSERT_INCPUSH_USE_SEP;
+
+    if (!len)
+	len = strlen(p);
+
+    end = p + len;
+
+    /* Break at all separators */
+    while ((s = (const char*)memchr(p, PERLLIB_SEP, end - p))) {
+	if (s == p) {
+	    /* skip any consecutive separators */
+
+	    /* Uncomment the next line for PATH semantics */
+	    /* But you'll need to write tests */
+	    /* av_push(GvAVn(PL_incgv), newSVpvs(".")); */
+	} else {
+	    incpush(p, (STRLEN)(s - p), flags);
+	}
+	p = s + 1;
+    }
+    if (p != end)
+	incpush(p, (STRLEN)(end - p), flags);
+
+}
 
 void
 Perl_call_list(pTHX_ I32 oldscope, AV *paramList)

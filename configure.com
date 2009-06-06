@@ -2720,17 +2720,18 @@ $   IF F$EXTRACT(0,4,line) .NES. "ext/" .AND. -
        F$EXTRACT(0,8,line) .NES. "vms/ext/" THEN goto ext_loop
 $   line = F$EDIT(line,"COMPRESS")
 $   line = F$ELEMENT(0," ",line)
-$   line_len = F$LENGTH(line)
-$   IF F$EXTRACT(line_len - 12,12,line) .NES. "/Makefile.PL" THEN goto ext_loop
-$   IF F$EXTRACT(0,4,line) .EQS. "ext/" THEN -
-      xxx = F$EXTRACT(4,line_len - 16,line)
+$   IF F$EXTRACT(0,4,line) .EQS. "ext/"
+$   THEN
+$     xxx = F$ELEMENT(1,"/",line)
+$     IF F$SEARCH("[-.ext]''xxx'.DIR;1") .EQS. "" THEN GOTO ext_loop
+$   ENDIF
+$   IF F$EXTRACT(0,8,line) .EQS. "vms/ext/"
+$   THEN
+$     xxx = F$ELEMENT(2,"/",line)
+$     IF F$SEARCH("[-.vms.ext]''xxx'.DIR;1") .EQS. "" THEN GOTO ext_loop
+$     xxx = "VMS/" + xxx
+$   ENDIF
 $   IF xxx .EQS. "DynaLoader" THEN goto ext_loop     ! omit
-$   IF xxx .EQS. "SDBM_File/sdbm" THEN goto ext_loop ! sub extension - omit
-$   IF xxx .EQS. "Devel/PPPort/harness" THEN goto ext_loop ! sub extension - omit
-$   IF F$EXTRACT(0,7,xxx) .EQS. "Encode/" THEN goto ext_loop  ! sub extension - omit
-$   IF xxx .EQS. "B/C" THEN goto ext_loop  ! sub extension - omit
-$   IF F$EXTRACT(0,8,line) .EQS. "vms/ext/" THEN -
-      xxx = "VMS/" + F$EXTRACT(8,line_len - 20,line)
 $!
 $! (extspec = xxx) =~ tr!-!/!
 $ extspec = ""
@@ -2748,6 +2749,28 @@ $   goto replace_dash_with_slash
 $
 $ end_replace_dash_with_slash:
 $   
+$ xxx = known_extensions
+$ may_already_have_extension:
+$   idx = F$LOCATE(extspec, xxx)
+$   extlen = F$LENGTH(xxx) 
+$   IF idx .EQ. extlen THEN goto found_new_extension
+$!  But "Flirble" may just be part of "Acme-Flirble"
+$   IF idx .GT. 0 .AND. F$EXTRACT(idx - 1, 1, xxx) .NES. " "
+$   THEN
+$	xxx = F$EXTRACT(idx + F$LENGTH(extspec) + 1, extlen, xxx)
+$	GOTO may_already_have_extension
+$   ENDIF
+$!  But "Foo" may just be part of "Foo-Bar" so check for equality.
+$   xxx = F$EXTRACT(idx, extlen - idx, xxx)
+$   IF F$ELEMENT(0, " ", xxx) .EQS. extspec
+$   THEN 
+$	GOTO ext_loop
+$   ELSE 
+$	xxx = F$EXTRACT(F$LENGTH(extspec) + 1, extlen, xxx)
+	GOTO may_already_have_extension
+$   ENDIF
+$!
+$ found_new_extension:
 $   known_extensions = known_extensions + " ''extspec'"
 $   goto ext_loop
 $end_ext:
@@ -2755,6 +2778,7 @@ $ close CONFIG
 $ DELETE/SYMBOL xxx
 $ DELETE/SYMBOL idx
 $ DELETE/SYMBOL extspec
+$ DELETE/SYMBOL extlen
 $ known_extensions = F$EDIT(known_extensions,"TRIM,COMPRESS")
 $ dflt = known_extensions
 $ IF ccname .NES. "DEC" .AND. ccname .NES. "CXX"
@@ -5925,6 +5949,7 @@ $ WC "d_ftello='" + d_ftello + "'"
 $ WC "d_futimes='undef'"
 $ WC "d_gdbmndbm_h_uses_prototypes='undef'"
 $ WC "d_gdbm_ndbm_h_uses_prototypes='undef'"
+$ WC "d_getaddrinfo='undef'"
 $ WC "d_getcwd='define'"
 $ WC "d_getespwnam='undef'"
 $ WC "d_getfsstat='undef'"
@@ -5939,6 +5964,7 @@ $ WC "d_getitimer='" + d_getitimer + "'"
 $ WC "d_getlogin='define'"
 $ WC "d_getmnt='undef'"
 $ WC "d_getmntent='undef'"
+$ WC "d_getnameinfo='undef'"
 $ WC "d_getnbyaddr='" + d_getnbyaddr + "'"
 $ WC "d_getnbyname='" + d_getnbyname + "'"
 $ WC "d_getnent='" + d_getnent + "'"
@@ -5970,6 +5996,8 @@ $ WC "d_ilogbl='undef'"
 $ WC "d_inc_version_list='undef'"
 $ WC "d_index='" + d_index + "'"
 $ WC "d_inetaton='undef'"
+$ WC "d_inetntop='undef'"
+$ WC "d_inetpton='undef'"
 $ WC "d_int64_t='" + d_int64_t + "'"
 $ WC "d_isascii='define'"
 $ WC "d_isfinite='undef'"
@@ -6446,9 +6474,9 @@ $ WC "randseedtype='" + randseedtype + "'"
 $ WC "ranlib='" + "'"
 $ WC "rd_nodata=' '"
 $ WC "revision='" + revision + "'"
-$ WC "sGMTIME_max='2147483647'"
+$ WC "sGMTIME_max='4294967295'"
 $ WC "sGMTIME_min='0'"
-$ WC "sLOCALTIME_max='2147483647'"
+$ WC "sLOCALTIME_max='4294967295'"
 $ WC "sLOCALTIME_min='0'"
 $ WC "sPRId64='" + sPRId64 + "'"
 $ WC "sPRIEldbl='" + sPRIEUldbl + "'"
@@ -6906,80 +6934,6 @@ $ mcr []munchconfig 'config_sh' 'Makefile_SH' -f extra_subs.txt
 $! Clean up after ourselves
 $ DELETE/NOLOG/NOCONFIRM []munchconfig.exe;
 $ DELETE/NOLOG/NOCONFIRM []extra_subs.txt;
-$!
-$ echo4 "Extracting make_ext.com (without variable substitutions)"
-$ Create Sys$Disk:[-]make_ext.com
-$ Deck/Dollar="$EndOfTpl$"
-$!++ make_ext.com
-$!   NOTE: This file is extracted as part of the VMS configuration process.
-$!   Any changes made to it directly will be lost.  If you need to make any
-$!   changes, please edit the template in Configure.Com instead.
-$    mydefault = F$Environment("Default")
-$!   p1 - how to invoke miniperl (passed in from descrip.mms)
-$    p1 = F$Edit(p1,"Upcase,Compress,Trim")
-$    If F$Locate("MCR ",p1).eq.0 Then p1 = F$Extract(3,255,p1)
-$    miniperl = "$" + F$Search(F$Parse(p1,".Exe"))
-$!   p2 - how to invoke local make utility (passed in from descrip.mms)
-$    makeutil = p2
-$    if f$type('p2') .nes. "" then makeutil = 'p2'
-$!   p3 - make target (passed in from descrip.mms)
-$    targ = F$Edit(p3,"Lowercase")
-$    sts = 1
-$    extensions = ""
-$    open/read CONFIG config.sh
-$ find_ext_loop:
-$    read/end=end_ext_loop CONFIG line
-$    if (f$extract(0,12,line) .NES. "extensions='")
-$    then goto find_ext_loop
-$    else extensions = f$extract(12,f$length(line),line) - "'"
-$    endif
-$ end_ext_loop:
-$    close CONFIG
-$    extensions = f$edit(extensions,"TRIM,COMPRESS")
-$    i = 0
-$ next_ext:
-$    ext = f$element(i," ",extensions)
-$    If ext .eqs. " " .or. ext .eqs. "" Then Goto done
-$    Define/User_mode Perl_Env_Tables CLISYM_LOCAL
-$    miniperl
-$    deck
-     ($extdir = $ENV{'ext'}) =~ s/::/./g;
-     $extdir =~ s#/#.#g;
-     if ($extdir =~ /^vms/i) { $extdir =~ s/vms/.vms.ext/i; }
-     else                    { $extdir = ".ext.$extdir";   }
-     ($ENV{'extdir'} = "[$extdir]");
-     ($ENV{'up'} = ('-') x ($extdir =~ tr/././));
-$    eod
-$    Set Default &extdir
-$    redesc = 0
-$    If F$Locate("clean",targ) .eqs. F$Length(targ)
-$    Then
-$      Write Sys$Output ""
-$      Write Sys$Output "	Making ''ext' (dynamic)"
-$      On Error Then Goto done
-$      If F$Search("Descrip.MMS") .eqs. ""
-$      Then
-$        redesc = 1
-$      Else
-$        If F$CvTime(F$File("Descrip.MMS","rdt")) .lts. -
-            F$CvTime(F$File("Makefile.PL","rdt")) Then redesc = 1
-$      EndIf
-$    Else
-$      Write Sys$Output "''targ'ing ''ext' . . ."
-$      On Error Then Continue
-$    EndIf
-$    If redesc Then -
-       miniperl "-I[''up'.lib]" Makefile.PL "INST_LIB=[''up'.lib]" "INST_ARCHLIB=[''up'.lib]"  "PERL_CORE=1"
-$    makeutil 'targ'
-$    i = i + 1
-$    Set Def &mydefault
-$    Goto next_ext
-$ done:
-$    sts = $Status
-$    Set Def &mydefault
-$    Exit sts
-$!-- make_ext.com
-$EndOfTpl$
 $!
 $! Note that the /key qualifier to search, as in:
 $! search README.* "=head"/key=(position=1)/window=0/output=extra.pods

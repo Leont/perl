@@ -1251,9 +1251,9 @@ PP(pp_flop)
 
 static const char * const context_name[] = {
     "pseudo-block",
-    "when",
+    NULL, /* CXt_WHEN never actually needs "block" */
     NULL, /* CXt_BLOCK never actually needs "block" */
-    "given",
+    NULL, /* CXt_GIVEN never actually needs "block" */
     NULL, /* CXt_LOOP_FOR never actually needs "loop" */
     NULL, /* CXt_LOOP_PLAIN never actually needs "loop" */
     NULL, /* CXt_LOOP_LAZYSV never actually needs "loop" */
@@ -1280,8 +1280,6 @@ S_dopoptolabel(pTHX_ const char *label)
 	case CXt_FORMAT:
 	case CXt_EVAL:
 	case CXt_NULL:
-	case CXt_GIVEN:
-	case CXt_WHEN:
 	    if (ckWARN(WARN_EXITING))
 		Perl_warner(aTHX_ packWARN(WARN_EXITING), "Exiting %s via %s",
 			context_name[CxTYPE(cx)], OP_NAME(PL_op));
@@ -3304,17 +3302,6 @@ PP(pp_require)
 	tryname = name;
 	tryrsfp = doopen_pm(name, len);
     }
-#ifdef MACOS_TRADITIONAL
-    if (!tryrsfp) {
-	char newname[256];
-
-	MacPerl_CanonDir(name, newname, 1);
-	if (path_is_absolute(newname)) {
-	    tryname = newname;
-	    tryrsfp = doopen_pm(newname, strlen(newname));
-	}
-    }
-#endif
     if (!tryrsfp) {
 	AV * const ar = GvAVn(PL_incgv);
 	I32 i;
@@ -3445,12 +3432,6 @@ PP(pp_require)
 		}
 		else {
 		  if (!path_is_absolute(name)
-#ifdef MACOS_TRADITIONAL
-			/* We consider paths of the form :a:b ambiguous and interpret them first
-			   as global then as local
-			*/
-			|| (*name == ':' && name[1] != ':' && strchr(name+2, ':'))
-#endif
 		  ) {
 		    const char *dir;
 		    STRLEN dirlen;
@@ -3462,21 +3443,14 @@ PP(pp_require)
 			dirlen = 0;
 		    }
 
-#ifdef MACOS_TRADITIONAL
-		    char buf1[256];
-		    char buf2[256];
-
-		    MacPerl_CanonDir(name, buf2, 1);
-		    Perl_sv_setpvf(aTHX_ namesv, "%s%s", MacPerl_CanonDir(dir, buf1, 0), buf2+(buf2[0] == ':'));
-#else
-#  ifdef VMS
+#ifdef VMS
 		    char *unixdir;
 		    if ((unixdir = tounixpath(dir, NULL)) == NULL)
 			continue;
 		    sv_setpv(namesv, unixdir);
 		    sv_catpv(namesv, unixname);
-#  else
-#    ifdef __SYMBIAN32__
+#else
+#  ifdef __SYMBIAN32__
 		    if (PL_origfilename[0] &&
 			PL_origfilename[1] == ':' &&
 			!(dir[0] && dir[1] == ':'))
@@ -3488,7 +3462,7 @@ PP(pp_require)
 		        Perl_sv_setpvf(aTHX_ namesv,
 				       "%s\\%s",
 				       dir, name);
-#    else
+#  else
 		    /* The equivalent of		    
 		       Perl_sv_setpvf(aTHX_ namesv, "%s/%s", dir, name);
 		       but without the need to parse the format string, or
@@ -3509,7 +3483,6 @@ PP(pp_require)
 			/* Don't even actually have to turn SvPOK_on() as we
 			   access it directly with SvPVX() below.  */
 		    }
-#    endif
 #  endif
 #endif
 		    TAINT_PROPER("require");
@@ -3695,8 +3668,11 @@ PP(pp_entereval)
        introduced within evals. See force_ident(). GSAR 96-10-12 */
     SAVEHINTS();
     PL_hints = PL_op->op_targ;
-    if (saved_hh)
+    if (saved_hh) {
+	/* SAVEHINTS created a new HV in PL_hintgv, which we need to GC */
+	SvREFCNT_dec(GvHV(PL_hintgv));
 	GvHV(PL_hintgv) = saved_hh;
+    }
     SAVECOMPILEWARNINGS();
     PL_compiling.cop_warnings = DUP_WARNINGS(PL_curcop->cop_warnings);
     if (PL_compiling.cop_hints_hash) {
@@ -4024,54 +4000,21 @@ S_do_smartmatch(pTHX_ HV *seen_this, HV *seen_other)
     dVAR;
     dSP;
     
+    bool object_on_left = FALSE;
     SV *e = TOPs;	/* e is for 'expression' */
     SV *d = TOPm1s;	/* d is for 'default', as in PL_defgv */
-    SV *This, *Other;	/* 'This' (and Other to match) to play with C++ */
-    REGEXP *this_regex, *other_regex;
 
-#   define NOT_EMPTY_PROTO(cv) (!SvPOK(cv) || SvCUR(cv) == 0)
+    /* First of all, handle overload magic of the rightmost argument */
+    if (SvAMAGIC(e)) {
+	SV * const tmpsv = amagic_call(d, e, smart_amg, 0);
+	if (tmpsv) {
+	    SPAGAIN;
+	    (void)POPs;
+	    SETs(tmpsv);
+	    RETURN;
+	}
+    }
 
-#   define SM_REF(type) ( \
-	   (SvROK(d) && (SvTYPE(This = SvRV(d)) == SVt_##type) && (Other = e)) \
-	|| (SvROK(e) && (SvTYPE(This = SvRV(e)) == SVt_##type) && (Other = d)))
-
-#   define SM_CV_NEP   /* Find a code ref without an empty prototype */ \
-	((SvROK(d) && (SvTYPE(This = SvRV(d)) == SVt_PVCV)		\
-	    && NOT_EMPTY_PROTO(This) && (Other = e))			\
-	|| (SvROK(e) && (SvTYPE(This = SvRV(e)) == SVt_PVCV)		\
-	    && NOT_EMPTY_PROTO(This) && (Other = d)))
-
-#   define SM_REGEX ( \
-	   (SvROK(d) && (SvTYPE(This = SvRV(d)) == SVt_REGEXP)		\
-	&& (this_regex = (REGEXP*) This)				\
-	&& (Other = e))							\
-    ||									\
-	   (SvROK(e) && (SvTYPE(This = SvRV(e)) == SVt_REGEXP)		\
-	&& (this_regex = (REGEXP*) This)				\
-	&& (Other = d))	)
-	
-
-#   define SM_OBJECT ( \
-	   (sv_isobject(d) && (SvTYPE(SvRV(d)) != SVt_REGEXP))		\
-    ||									\
-	   (sv_isobject(e) && (SvTYPE(SvRV(e)) != SVt_REGEXP)) )	\
-
-#   define SM_OTHER_REF(type) \
-	(SvROK(Other) && SvTYPE(SvRV(Other)) == SVt_##type)
-
-#   define SM_OTHER_REGEX (SvROK(Other)					\
-	&& (SvTYPE(SvRV(Other)) == SVt_REGEXP)				\
-	&& (other_regex = (REGEXP*) SvRV(Other)))
-
-
-#   define SM_SEEN_THIS(sv) hv_exists_ent(seen_this, \
-	sv_2mortal(newSViv(PTR2IV(sv))), 0)
-
-#   define SM_SEEN_OTHER(sv) hv_exists_ent(seen_other, \
-	sv_2mortal(newSViv(PTR2IV(sv))), 0)
-
-    tryAMAGICbinSET(smart, 0);
-    
     SP -= 2;	/* Pop the values */
 
     /* Take care only to invoke mg_get() once for each argument. 
@@ -4087,72 +4030,145 @@ S_do_smartmatch(pTHX_ HV *seen_this, HV *seen_other)
     if (SvGMAGICAL(e))
 	e = sv_mortalcopy(e);
 
-    if (SM_OBJECT)
-	Perl_croak(aTHX_ "Smart matching a non-overloaded object breaks encapsulation");
+    /* ~~ undef */
+    if (!SvOK(e)) {
+	if (SvOK(d))
+	    RETPUSHNO;
+	else
+	    RETPUSHYES;
+    }
 
-    if (SM_CV_NEP) {
+    if (sv_isobject(e) && (SvTYPE(SvRV(e)) != SVt_REGEXP))
+	Perl_croak(aTHX_ "Smart matching a non-overloaded object breaks encapsulation");
+    if (sv_isobject(d) && (SvTYPE(SvRV(d)) != SVt_REGEXP))
+	object_on_left = TRUE;
+
+    /* ~~ sub */
+    if (SvROK(e) && SvTYPE(SvRV(e)) == SVt_PVCV) {
 	I32 c;
-	
-	if ( SM_OTHER_REF(PVCV) && NOT_EMPTY_PROTO(SvRV(Other)) )
-	{
-	    if (This == SvRV(Other))
+	if (object_on_left) {
+	    goto sm_any_sub; /* Treat objects like scalars */
+	}
+	else if (SvROK(d) && SvTYPE(SvRV(d)) == SVt_PVHV) {
+	    /* Test sub truth for each key */
+	    HE *he;
+	    bool andedresults = TRUE;
+	    HV *hv = (HV*) SvRV(d);
+	    I32 numkeys = hv_iterinit(hv);
+	    if (numkeys == 0)
+		RETPUSHYES;
+	    while ( (he = hv_iternext(hv)) ) {
+		ENTER;
+		SAVETMPS;
+		PUSHMARK(SP);
+		PUSHs(hv_iterkeysv(he));
+		PUTBACK;
+		c = call_sv(e, G_SCALAR);
+		SPAGAIN;
+		if (c == 0)
+		    andedresults = FALSE;
+		else
+		    andedresults = SvTRUEx(POPs) && andedresults;
+		FREETMPS;
+		LEAVE;
+	    }
+	    if (andedresults)
 		RETPUSHYES;
 	    else
 		RETPUSHNO;
 	}
-	
-	ENTER;
-	SAVETMPS;
-	PUSHMARK(SP);
-	PUSHs(Other);
-	PUTBACK;
-	c = call_sv(This, G_SCALAR);
-	SPAGAIN;
-	if (c == 0)
-	    PUSHs(&PL_sv_no);
-	else if (SvTEMP(TOPs))
-	    SvREFCNT_inc_void(TOPs);
-	FREETMPS;
-	LEAVE;
-	RETURN;
+	else if (SvROK(d) && SvTYPE(SvRV(d)) == SVt_PVAV) {
+	    /* Test sub truth for each element */
+	    I32 i;
+	    bool andedresults = TRUE;
+	    AV *av = (AV*) SvRV(d);
+	    const I32 len = av_len(av);
+	    if (len == -1)
+		RETPUSHYES;
+	    for (i = 0; i <= len; ++i) {
+		SV * const * const svp = av_fetch(av, i, FALSE);
+		ENTER;
+		SAVETMPS;
+		PUSHMARK(SP);
+		if (svp)
+		    PUSHs(*svp);
+		PUTBACK;
+		c = call_sv(e, G_SCALAR);
+		SPAGAIN;
+		if (c == 0)
+		    andedresults = FALSE;
+		else
+		    andedresults = SvTRUEx(POPs) && andedresults;
+		FREETMPS;
+		LEAVE;
+	    }
+	    if (andedresults)
+		RETPUSHYES;
+	    else
+		RETPUSHNO;
+	}
+	else {
+	  sm_any_sub:
+	    ENTER;
+	    SAVETMPS;
+	    PUSHMARK(SP);
+	    PUSHs(d);
+	    PUTBACK;
+	    c = call_sv(e, G_SCALAR);
+	    SPAGAIN;
+	    if (c == 0)
+		PUSHs(&PL_sv_no);
+	    else if (SvTEMP(TOPs))
+		SvREFCNT_inc_void(TOPs);
+	    FREETMPS;
+	    LEAVE;
+	    RETURN;
+	}
     }
-    else if (SM_REF(PVHV)) {
-	if (SM_OTHER_REF(PVHV)) {
+    /* ~~ %hash */
+    else if (SvROK(e) && SvTYPE(SvRV(e)) == SVt_PVHV) {
+	if (object_on_left) {
+	    goto sm_any_hash; /* Treat objects like scalars */
+	}
+	else if (!SvOK(d)) {
+	    RETPUSHNO;
+	}
+	else if (SvROK(d) && SvTYPE(SvRV(d)) == SVt_PVHV) {
 	    /* Check that the key-sets are identical */
 	    HE *he;
-	    HV *other_hv = MUTABLE_HV(SvRV(Other));
+	    HV *other_hv = MUTABLE_HV(SvRV(d));
 	    bool tied = FALSE;
 	    bool other_tied = FALSE;
 	    U32 this_key_count  = 0,
 	        other_key_count = 0;
+	    HV *hv = MUTABLE_HV(SvRV(e));
 	    
 	    /* Tied hashes don't know how many keys they have. */
-	    if (SvTIED_mg(This, PERL_MAGIC_tied)) {
+	    if (SvTIED_mg((SV*)hv, PERL_MAGIC_tied)) {
 		tied = TRUE;
 	    }
 	    else if (SvTIED_mg((const SV *)other_hv, PERL_MAGIC_tied)) {
 		HV * const temp = other_hv;
-		other_hv = MUTABLE_HV(This);
-		This  = MUTABLE_SV(temp);
+		other_hv = hv;
+		hv = temp;
 		tied = TRUE;
 	    }
 	    if (SvTIED_mg((const SV *)other_hv, PERL_MAGIC_tied))
 		other_tied = TRUE;
 	    
-	    if (!tied && HvUSEDKEYS((const HV *) This) != HvUSEDKEYS(other_hv))
+	    if (!tied && HvUSEDKEYS((const HV *) hv) != HvUSEDKEYS(other_hv))
 	    	RETPUSHNO;
 
 	    /* The hashes have the same number of keys, so it suffices
 	       to check that one is a subset of the other. */
-	    (void) hv_iterinit(MUTABLE_HV(This));
-	    while ( (he = hv_iternext(MUTABLE_HV(This))) ) {
-	    	I32 key_len;
-		char * const key = hv_iterkey(he, &key_len);
+	    (void) hv_iterinit(hv);
+	    while ( (he = hv_iternext(hv)) ) {
+		SV *key = hv_iterkeysv(he);
 	    	
 	    	++ this_key_count;
 	    	
-	    	if(!hv_exists(other_hv, key, key_len)) {
-	    	    (void) hv_iterinit(MUTABLE_HV(This));	/* reset iterator */
+	    	if(!hv_exists_ent(other_hv, key, 0)) {
+	    	    (void) hv_iterinit(hv);	/* reset iterator */
 		    RETPUSHNO;
 	    	}
 	    }
@@ -4170,50 +4186,70 @@ S_do_smartmatch(pTHX_ HV *seen_this, HV *seen_other)
 	    else
 		RETPUSHYES;
 	}
-	else if (SM_OTHER_REF(PVAV)) {
-	    AV * const other_av = MUTABLE_AV(SvRV(Other));
+	else if (SvROK(d) && SvTYPE(SvRV(d)) == SVt_PVAV) {
+	    AV * const other_av = MUTABLE_AV(SvRV(d));
 	    const I32 other_len = av_len(other_av) + 1;
 	    I32 i;
+	    HV *hv = MUTABLE_HV(SvRV(e));
 
 	    for (i = 0; i < other_len; ++i) {
 		SV ** const svp = av_fetch(other_av, i, FALSE);
-		char *key;
-		STRLEN key_len;
-
 		if (svp) {	/* ??? When can this not happen? */
-		    key = SvPV(*svp, key_len);
-		    if (hv_exists(MUTABLE_HV(This), key, key_len))
+		    if (hv_exists_ent(hv, *svp, 0))
 		        RETPUSHYES;
 		}
 	    }
 	    RETPUSHNO;
 	}
-	else if (SM_OTHER_REGEX) {
-	    PMOP * const matcher = make_matcher(other_regex);
-	    HE *he;
+	else if (SvROK(d) && SvTYPE(SvRV(d)) == SVt_REGEXP) {
+	  sm_regex_hash:
+	    {
+		PMOP * const matcher = make_matcher((REGEXP*) SvRV(d));
+		HE *he;
+		HV *hv = MUTABLE_HV(SvRV(e));
 
-	    (void) hv_iterinit(MUTABLE_HV(This));
-	    while ( (he = hv_iternext(MUTABLE_HV(This))) ) {
-		if (matcher_matches_sv(matcher, hv_iterkeysv(he))) {
-		    (void) hv_iterinit(MUTABLE_HV(This));
-		    destroy_matcher(matcher);
-		    RETPUSHYES;
+		(void) hv_iterinit(hv);
+		while ( (he = hv_iternext(hv)) ) {
+		    if (matcher_matches_sv(matcher, hv_iterkeysv(he))) {
+			(void) hv_iterinit(hv);
+			destroy_matcher(matcher);
+			RETPUSHYES;
+		    }
 		}
+		destroy_matcher(matcher);
+		RETPUSHNO;
 	    }
-	    destroy_matcher(matcher);
-	    RETPUSHNO;
 	}
 	else {
-	    if (hv_exists_ent(MUTABLE_HV(This), Other, 0))
+	  sm_any_hash:
+	    if (hv_exists_ent(MUTABLE_HV(SvRV(e)), d, 0))
 		RETPUSHYES;
 	    else
 		RETPUSHNO;
 	}
     }
-    else if (SM_REF(PVAV)) {
-	if (SM_OTHER_REF(PVAV)) {
-	    AV *other_av = MUTABLE_AV(SvRV(Other));
-	    if (av_len(MUTABLE_AV(This)) != av_len(other_av))
+    /* ~~ @array */
+    else if (SvROK(e) && SvTYPE(SvRV(e)) == SVt_PVAV) {
+	if (object_on_left) {
+	    goto sm_any_array; /* Treat objects like scalars */
+	}
+	else if (SvROK(d) && SvTYPE(SvRV(d)) == SVt_PVHV) {
+	    AV * const other_av = MUTABLE_AV(SvRV(e));
+	    const I32 other_len = av_len(other_av) + 1;
+	    I32 i;
+
+	    for (i = 0; i < other_len; ++i) {
+		SV ** const svp = av_fetch(other_av, i, FALSE);
+		if (svp) {	/* ??? When can this not happen? */
+		    if (hv_exists_ent(MUTABLE_HV(SvRV(d)), *svp, 0))
+		        RETPUSHYES;
+		}
+	    }
+	    RETPUSHNO;
+	}
+	if (SvROK(d) && SvTYPE(SvRV(d)) == SVt_PVAV) {
+	    AV *other_av = MUTABLE_AV(SvRV(d));
+	    if (av_len(MUTABLE_AV(SvRV(e))) != av_len(other_av))
 		RETPUSHNO;
 	    else {
 	    	I32 i;
@@ -4228,15 +4264,17 @@ S_do_smartmatch(pTHX_ HV *seen_this, HV *seen_other)
 		    (void) sv_2mortal(MUTABLE_SV(seen_other));
 		}
 		for(i = 0; i <= other_len; ++i) {
-		    SV * const * const this_elem = av_fetch(MUTABLE_AV(This), i, FALSE);
+		    SV * const * const this_elem = av_fetch(MUTABLE_AV(SvRV(e)), i, FALSE);
 		    SV * const * const other_elem = av_fetch(other_av, i, FALSE);
 
 		    if (!this_elem || !other_elem) {
 			if (this_elem || other_elem)
 			    RETPUSHNO;
 		    }
-		    else if (SM_SEEN_THIS(*this_elem)
-			 || SM_SEEN_OTHER(*other_elem))
+		    else if (hv_exists_ent(seen_this,
+				sv_2mortal(newSViv(PTR2IV(*this_elem))), 0) ||
+			    hv_exists_ent(seen_other,
+				sv_2mortal(newSViv(PTR2IV(*other_elem))), 0))
 		    {
 			if (*this_elem != *other_elem)
 			    RETPUSHNO;
@@ -4248,8 +4286,8 @@ S_do_smartmatch(pTHX_ HV *seen_this, HV *seen_other)
 			(void)hv_store_ent(seen_other,
 				sv_2mortal(newSViv(PTR2IV(*other_elem))),
 				&PL_sv_undef, 0);
-			PUSHs(*this_elem);
 			PUSHs(*other_elem);
+			PUSHs(*this_elem);
 			
 			PUTBACK;
 			(void) do_smartmatch(seen_this, seen_other);
@@ -4262,124 +4300,101 @@ S_do_smartmatch(pTHX_ HV *seen_this, HV *seen_other)
 		RETPUSHYES;
 	    }
 	}
-	else if (SM_OTHER_REGEX) {
-	    PMOP * const matcher = make_matcher(other_regex);
-	    const I32 this_len = av_len(MUTABLE_AV(This));
-	    I32 i;
+	else if (SvROK(d) && SvTYPE(SvRV(d)) == SVt_REGEXP) {
+	  sm_regex_array:
+	    {
+		PMOP * const matcher = make_matcher((REGEXP*) SvRV(d));
+		const I32 this_len = av_len(MUTABLE_AV(SvRV(e)));
+		I32 i;
 
-	    for(i = 0; i <= this_len; ++i) {
-		SV * const * const svp = av_fetch(MUTABLE_AV(This), i, FALSE);
-		if (svp && matcher_matches_sv(matcher, *svp)) {
-		    destroy_matcher(matcher);
-		    RETPUSHYES;
+		for(i = 0; i <= this_len; ++i) {
+		    SV * const * const svp = av_fetch(MUTABLE_AV(SvRV(e)), i, FALSE);
+		    if (svp && matcher_matches_sv(matcher, *svp)) {
+			destroy_matcher(matcher);
+			RETPUSHYES;
+		    }
 		}
+		destroy_matcher(matcher);
+		RETPUSHNO;
 	    }
+	}
+	else if (!SvOK(d)) {
+	    /* undef ~~ array */
+	    const I32 this_len = av_len(MUTABLE_AV(SvRV(e)));
+	    I32 i;
+
+	    for (i = 0; i <= this_len; ++i) {
+		SV * const * const svp = av_fetch(MUTABLE_AV(SvRV(e)), i, FALSE);
+		if (!svp || !SvOK(*svp))
+		    RETPUSHYES;
+	    }
+	    RETPUSHNO;
+	}
+	else {
+	  sm_any_array:
+	    {
+		I32 i;
+		const I32 this_len = av_len(MUTABLE_AV(SvRV(e)));
+
+		for (i = 0; i <= this_len; ++i) {
+		    SV * const * const svp = av_fetch(MUTABLE_AV(SvRV(e)), i, FALSE);
+		    if (!svp)
+			continue;
+
+		    PUSHs(d);
+		    PUSHs(*svp);
+		    PUTBACK;
+		    /* infinite recursion isn't supposed to happen here */
+		    (void) do_smartmatch(NULL, NULL);
+		    SPAGAIN;
+		    if (SvTRUEx(POPs))
+			RETPUSHYES;
+		}
+		RETPUSHNO;
+	    }
+	}
+    }
+    /* ~~ qr// */
+    else if (SvROK(e) && SvTYPE(SvRV(e)) == SVt_REGEXP) {
+	if (!object_on_left && SvROK(d) && SvTYPE(SvRV(d)) == SVt_PVHV) {
+	    SV *t = d; d = e; e = t;
+	    goto sm_regex_hash;
+	}
+	else if (!object_on_left && SvROK(d) && SvTYPE(SvRV(d)) == SVt_PVAV) {
+	    SV *t = d; d = e; e = t;
+	    goto sm_regex_array;
+	}
+	else {
+	    PMOP * const matcher = make_matcher((REGEXP*) SvRV(e));
+
+	    PUTBACK;
+	    PUSHs(matcher_matches_sv(matcher, d)
+		    ? &PL_sv_yes
+		    : &PL_sv_no);
 	    destroy_matcher(matcher);
-	    RETPUSHNO;
-	}
-	else if (SvIOK(Other) || SvNOK(Other)) {
-	    I32 i;
-
-	    for(i = 0; i <= AvFILL(MUTABLE_AV(This)); ++i) {
-		SV * const * const svp = av_fetch(MUTABLE_AV(This), i, FALSE);
-		if (!svp)
-		    continue;
-		
-		PUSHs(Other);
-		PUSHs(*svp);
-		PUTBACK;
-		if (CopHINTS_get(PL_curcop) & HINT_INTEGER)
-		    (void) pp_i_eq();
-		else
-		    (void) pp_eq();
-		SPAGAIN;
-		if (SvTRUEx(POPs))
-		    RETPUSHYES;
-	    }
-	    RETPUSHNO;
-	}
-	else if (SvPOK(Other)) {
-	    const I32 this_len = av_len(MUTABLE_AV(This));
-	    I32 i;
-
-	    for(i = 0; i <= this_len; ++i) {
-		SV * const * const svp = av_fetch(MUTABLE_AV(This), i, FALSE);
-		if (!svp)
-		    continue;
-		
-		PUSHs(Other);
-		PUSHs(*svp);
-		PUTBACK;
-		(void) pp_seq();
-		SPAGAIN;
-		if (SvTRUEx(POPs))
-		    RETPUSHYES;
-	    }
-	    RETPUSHNO;
+	    RETURN;
 	}
     }
-    else if (!SvOK(d) || !SvOK(e)) {
-	if (!SvOK(d) && !SvOK(e))
-	    RETPUSHYES;
-	else
-	    RETPUSHNO;
-    }
-    else if (SM_REGEX) {
-	PMOP * const matcher = make_matcher(this_regex);
-
+    /* ~~ scalar */
+    /* See if there is overload magic on left */
+    else if (object_on_left && SvAMAGIC(d)) {
+	SV *tmpsv;
+	PUSHs(d); PUSHs(e);
 	PUTBACK;
-	PUSHs(matcher_matches_sv(matcher, Other)
-	    ? &PL_sv_yes
-	    : &PL_sv_no);
-	destroy_matcher(matcher);
-	RETURN;
-    }
-    else if (SM_REF(PVCV)) {
-	I32 c;
-	/* This must be a null-prototyped sub, because we
-	   already checked for the other kind. */
-	
-	ENTER;
-	SAVETMPS;
-	PUSHMARK(SP);
-	PUTBACK;
-	c = call_sv(This, G_SCALAR);
-	SPAGAIN;
-	if (c == 0)
-	    PUSHs(&PL_sv_undef);
-	else if (SvTEMP(TOPs))
-	    SvREFCNT_inc_void(TOPs);
-
-	if (SM_OTHER_REF(PVCV)) {
-	    /* This one has to be null-proto'd too.
-	       Call both of 'em, and compare the results */
-	    PUSHMARK(SP);
-	    c = call_sv(SvRV(Other), G_SCALAR);
+	tmpsv = amagic_call(d, e, smart_amg, AMGf_noright);
+	if (tmpsv) {
 	    SPAGAIN;
-	    if (c == 0)
-		PUSHs(&PL_sv_undef);
-	    else if (SvTEMP(TOPs))
-		SvREFCNT_inc_void(TOPs);
-	    FREETMPS;
-	    LEAVE;
-	    PUTBACK;
-	    return pp_eq();
+	    (void)POPs;
+	    SETs(tmpsv);
+	    RETURN;
 	}
-	
-	FREETMPS;
-	LEAVE;
-	RETURN;
+	SP -= 2;
+	goto sm_any_scalar;
     }
-    else if ( ((SvIOK(d) || SvNOK(d)) && (This = d) && (Other = e))
-         ||   ((SvIOK(e) || SvNOK(e)) && (This = e) && (Other = d)) )
-    {
-	if (SvPOK(Other) && !looks_like_number(Other)) {
-	    /* String comparison */
-	    PUSHs(d); PUSHs(e);
-	    PUTBACK;
-	    return pp_seq();
-	}
-	/* Otherwise, numeric comparison */
+    else
+  sm_any_scalar:
+    if (SvNIOK(e) || (SvPOK(e) && looks_like_number(e) && SvNIOK(d))) {
+	/* numeric comparison */
 	PUSHs(d); PUSHs(e);
 	PUTBACK;
 	if (CopHINTS_get(PL_curcop) & HINT_INTEGER)
@@ -4931,8 +4946,12 @@ S_path_is_absolute(const char *name)
     PERL_ARGS_ASSERT_PATH_IS_ABSOLUTE;
 
     if (PERL_FILE_IS_ABSOLUTE(name)
-#ifdef MACOS_TRADITIONAL
-	|| (*name == ':')
+#ifdef WIN32
+	|| (*name == '.' && ((name[1] == '/' ||
+			     (name[1] == '.' && name[2] == '/'))
+			 || (name[1] == '\\' ||
+			     ( name[1] == '.' && name[2] == '\\')))
+	    )
 #else
 	|| (*name == '.' && (name[1] == '/' ||
 			     (name[1] == '.' && name[2] == '/')))

@@ -399,14 +399,6 @@ Perl_allocmy(pTHX_ const char *const name)
     /* check for duplicate declaration */
     pad_check_dup(name, is_our, (PL_curstash ? PL_curstash : PL_defstash));
 
-    if (PL_parser->in_my_stash && *name != '$') {
-	yyerror(Perl_form(aTHX_
-		    "Can't declare class for non-scalar %s in \"%s\"",
- 		     name,
- 		     is_our ? "our"
-			    : PL_parser->in_my == KEY_state ? "state" : "my"));
-    }
-
     /* allocate a spare slot and store the name in that slot */
 
     off = pad_add_name(name,
@@ -4333,7 +4325,7 @@ Perl_newASSIGNOP(pTHX_ I32 flags, OP *left, I32 optype, OP *right)
 		      ((LISTOP*)right)->op_last->op_type == OP_CONST)
 		    {
 			SV *sv = ((SVOP*)((LISTOP*)right)->op_last)->op_sv;
-			if (SvIVX(sv) == 0)
+			if (SvIOK(sv) && SvIVX(sv) == 0)
 			    sv_setiv(sv, PL_modcount+1);
 		    }
 		}
@@ -4355,6 +4347,7 @@ Perl_newASSIGNOP(pTHX_ I32 flags, OP *left, I32 optype, OP *right)
 	    PL_eval_start = 0;
 	else {
 	    if (!PL_madskills) { /* assignment to $[ is ignored when making a mad dump */
+		deprecate("assignment to $[");
 		op_free(o);
 		o = newSVOP(OP_CONST, 0, newSViv(CopARYBASE_get(&PL_compiling)));
 		o->op_private |= OPpCONST_ARYBASE;
@@ -5183,6 +5176,7 @@ S_looks_like_bool(pTHX_ const OP *o)
 
     switch(o->op_type) {
 	case OP_OR:
+	case OP_DOR:
 	    return looks_like_bool(cLOGOPo->op_first);
 
 	case OP_AND:
@@ -5198,7 +5192,6 @@ S_looks_like_bool(pTHX_ const OP *o)
 	case OP_ENTERSUB:
 
 	case OP_NOT:	case OP_XOR:
-	/* Note that OP_DOR is not here */
 
 	case OP_EQ:	case OP_NE:	case OP_LT:
 	case OP_GT:	case OP_LE:	case OP_GE:
@@ -5223,6 +5216,8 @@ S_looks_like_bool(pTHX_ const OP *o)
 	case OP_DEFINED: case OP_EXISTS:
 	case OP_MATCH:	 case OP_EOF:
 
+	case OP_FLOP:
+
 	    return TRUE;
 	
 	case OP_CONST:
@@ -5231,7 +5226,9 @@ S_looks_like_bool(pTHX_ const OP *o)
 	    ||  cSVOPo->op_sv == &PL_sv_no)
 	    
 		return TRUE;
-		
+	    else
+		return FALSE;
+
 	/* FALL THROUGH */
 	default:
 	    return FALSE;
@@ -5587,12 +5584,6 @@ Perl_newATTRSUB(pTHX_ I32 floor, OP *o, OP *proto, OP *attrs, OP *block)
 
     cv = (!name || GvCVGEN(gv)) ? NULL : GvCV(gv);
 
-#ifdef GV_UNIQUE_CHECK
-    if (cv && GvUNIQUE(gv) && SvREADONLY(cv)) {
-        Perl_croak(aTHX_ "Can't define subroutine %s (GV is unique)", name);
-    }
-#endif
-
     if (!block || !ps || *ps || attrs
 	|| (CvFLAGS(PL_compcv) & CVf_BUILTIN_ATTRS)
 #ifdef PERL_MAD
@@ -5605,12 +5596,6 @@ Perl_newATTRSUB(pTHX_ I32 floor, OP *o, OP *proto, OP *attrs, OP *block)
 
     if (cv) {
         const bool exists = CvROOT(cv) || CvXSUB(cv);
-
-#ifdef GV_UNIQUE_CHECK
-        if (exists && GvUNIQUE(gv)) {
-            Perl_croak(aTHX_ "Can't redefine unique subroutine %s", name);
-        }
-#endif
 
         /* if the subroutine doesn't exist and wasn't pre-declared
          * with a prototype, assume it will be AUTOLOADed,
@@ -5949,6 +5934,11 @@ S_process_special_blocks(pTHX_ const char *const fullname, GV *const gv,
 Creates a constant sub equivalent to Perl C<sub FOO () { 123 }> which is
 eligible for inlining at compile-time.
 
+Passing NULL for SV creates a constant sub equivalent to C<sub BAR () {}>,
+which won't be called if used as a destructor, but will suppress the overhead
+of a call to C<AUTOLOAD>.  (This form, however, isn't eligible for inlining at
+compile time.)
+
 =cut
 */
 
@@ -6149,20 +6139,19 @@ Perl_newFORM(pTHX_ I32 floor, OP *o, OP *block)
 	? gv_fetchsv(cSVOPo->op_sv, GV_ADD, SVt_PVFM)
 	: gv_fetchpvs("STDOUT", GV_ADD|GV_NOTQUAL, SVt_PVFM);
 
-#ifdef GV_UNIQUE_CHECK
-    if (GvUNIQUE(gv)) {
-        Perl_croak(aTHX_ "Bad symbol for form (GV is unique)");
-    }
-#endif
     GvMULTI_on(gv);
     if ((cv = GvFORM(gv))) {
 	if (ckWARN(WARN_REDEFINE)) {
 	    const line_t oldline = CopLINE(PL_curcop);
 	    if (PL_parser && PL_parser->copline != NOLINE)
 		CopLINE_set(PL_curcop, PL_parser->copline);
-	    Perl_warner(aTHX_ packWARN(WARN_REDEFINE),
-			o ? "Format %"SVf" redefined"
-			: "Format STDOUT redefined", SVfARG(cSVOPo->op_sv));
+	    if (o) {
+		Perl_warner(aTHX_ packWARN(WARN_REDEFINE),
+			    "Format %"SVf" redefined", SVfARG(cSVOPo->op_sv));
+	    } else {
+		Perl_warner(aTHX_ packWARN(WARN_REDEFINE),
+			    "Format STDOUT redefined");
+	    }
 	    CopLINE_set(PL_curcop, oldline);
 	}
 	SvREFCNT_dec(cv);
@@ -6539,6 +6528,8 @@ Perl_ck_eval(pTHX_ OP *o)
 
 	    /* establish postfix order */
 	    enter->op_next = (OP*)enter;
+
+	    CHECKOP(OP_ENTERTRY, enter);
 
 	    o = prepend_elem(OP_LINESEQ, (OP*)enter, (OP*)kid);
 	    o->op_type = OP_LEAVETRY;
@@ -8561,7 +8552,7 @@ Perl_peep(pTHX_ register OP *o)
 
 	    /* Make the CONST have a shared SV */
 	    svp = cSVOPx_svp(((BINOP*)o)->op_last);
-	    if ((!SvFAKE(sv = *svp) || !SvREADONLY(sv)) && !IS_PADCONST(sv)) {
+	    if (!SvFAKE(sv = *svp) || !SvREADONLY(sv)) {
 		key = SvPV_const(sv, keylen);
 		lexname = newSVpvn_share(key,
 					 SvUTF8(sv) ? -(I32)keylen : (I32)keylen,
@@ -8966,6 +8957,7 @@ const_sv_xsub(pTHX_ CV* cv)
 {
     dVAR;
     dXSARGS;
+    SV *const sv = MUTABLE_SV(XSANY.any_ptr);
     if (items != 0) {
 	NOOP;
 #if 0
@@ -8973,8 +8965,11 @@ const_sv_xsub(pTHX_ CV* cv)
                    HvNAME_get(GvSTASH(CvGV(cv))), GvNAME(CvGV(cv)));
 #endif
     }
+    if (!sv) {
+	XSRETURN(0);
+    }
     EXTEND(sp, 1);
-    ST(0) = MUTABLE_SV(XSANY.any_ptr);
+    ST(0) = sv;
     XSRETURN(1);
 }
 

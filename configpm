@@ -124,6 +124,10 @@ $config_txt .= sprintf <<'ENDOFBEG', ($myver) x 3;
 # This file was created by configpm when Perl was built. Any changes
 # made to this file will be lost the next time perl is built.
 
+# for a description of the variables, please have a look at the
+# Glossary file, as written in the Porting folder, or use the url:
+# http://perl5.git.perl.org/perl.git/blob/HEAD:/Porting/Glossary
+
 package Config;
 use strict;
 # use warnings; Pulls in Carp
@@ -772,6 +776,10 @@ Values stored in config.sh as 'undef' are returned as undefined
 values.  The perl C<exists> function can be used to check if a
 named variable exists.
 
+For a description of the variables, please have a look at the
+Glossary file, as written in the Porting folder, or use the url:
+http://perl5.git.perl.org/perl.git/blob/HEAD:/Porting/Glossary
+
 =over 4
 
 =item myconfig()
@@ -929,6 +937,21 @@ if ($Opts{glossary}) {
 print CONFIG_POD <<'ENDOFTAIL';
 
 =back
+
+=head1 GIT DATA
+
+Information on the git commit from which the current perl binary was compiled
+can be found in the variable C<$Config::Git_Data>.  The variable is a
+structured string that looks something like this:
+
+  git_commit_id='ea0c2dbd5f5ac6845ecc7ec6696415bf8e27bd52'
+  git_describe='GitLive-blead-1076-gea0c2db'
+  git_branch='smartmatch'
+  git_uncommitted_changes=''
+  git_commit_id_title='Commit id:'
+  git_commit_date='2009-05-09 17:47:31 +0200'
+
+Its format is not guaranteed not to change over time.
 
 =head1 NOTE
 

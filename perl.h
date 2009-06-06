@@ -943,7 +943,7 @@ EXTERN_C int usleep(unsigned int);
 #define PERL_USES_PL_PIDSTATUS
 #endif
 
-#if !defined(OS2) && !defined(WIN32) && !defined(DJGPP) && !defined(EPOC) && !defined(__SYMBIAN32__) && !defined(MACOS_TRADITIONAL)
+#if !defined(OS2) && !defined(WIN32) && !defined(DJGPP) && !defined(EPOC) && !defined(__SYMBIAN32__)
 #define PERL_DEFAULT_DO_EXEC3_IMPLEMENTATION
 #endif
 
@@ -1141,6 +1141,13 @@ EXTERN_C int usleep(unsigned int);
 
 #ifdef I_SYS_STAT
 #   include <sys/stat.h>
+#endif
+
+/* Microsoft VC's sys/stat.h defines all S_Ixxx macros except S_IFIFO.
+   This definition should ideally go into win32/win32.h, but S_IFIFO is
+   used later here in perl.h before win32/win32.h is being included. */
+#if !defined(S_IFIFO) && defined(_S_IFIFO)
+#   define S_IFIFO _S_IFIFO
 #endif
 
 /* The stat macros for Amdahl UTS, Unisoft System V/88 (and derivatives
@@ -2502,7 +2509,7 @@ typedef struct clone_params CLONE_PARAMS;
 #   endif
 #endif
 
-#if defined(OS2) || defined(MACOS_TRADITIONAL)
+#if defined(OS2)
 #  include "iperlsys.h"
 #endif
 
@@ -2564,13 +2571,6 @@ typedef struct clone_params CLONE_PARAMS;
 #   define ISHISH "symbian"
 #endif
 
-#if defined(MACOS_TRADITIONAL)
-#   include "macos/macish.h"
-#   ifndef NO_ENVIRON_ARRAY
-#       define NO_ENVIRON_ARRAY
-#   endif
-#   define ISHISH "macos classic"
-#endif
 
 #if defined(__HAIKU__)
 #   include "haiku/haikuish.h"
@@ -2679,6 +2679,25 @@ typedef struct clone_params CLONE_PARAMS;
 #ifndef PERL_SYS_INIT3_BODY
 #  define PERL_SYS_INIT3_BODY(argvp,argcp,envp) PERL_SYS_INIT_BODY(argvp,argcp)
 #endif
+
+/*
+=for apidoc Am|void|PERL_SYS_INIT|int argc|char** argv
+Provides system-specific tune up of the C runtime environment necessary to
+run Perl interpreters. This should be called only once, before creating
+any Perl interpreters.
+
+=for apidoc Am|void|PERL_SYS_INIT3|int argc|char** argv|char** env
+Provides system-specific tune up of the C runtime environment necessary to
+run Perl interpreters. This should be called only once, before creating
+any Perl interpreters.
+
+=for apidoc Am|void|PERL_SYS_TERM|
+Provides system-specific clean up of the C runtime environment after
+running Perl interpreters. This should be called only once, after
+freeing any remaining Perl interpreters.
+
+=cut
+ */
 
 #define PERL_SYS_INIT(argc, argv)	Perl_sys_init(argc, argv)
 #define PERL_SYS_INIT3(argc, argv, env)	Perl_sys_init3(argc, argv, env)
@@ -3060,10 +3079,18 @@ typedef pthread_key_t	perl_key;
 #  define MEMBER_TO_FPTR(name)		name
 #endif
 
+#ifndef PERL_CORE
 /* format to use for version numbers in file/directory names */
 /* XXX move to Configure? */
-#ifndef PERL_FS_VER_FMT
-#  define PERL_FS_VER_FMT	"%d.%d.%d"
+/* This was only ever used for the current version, and that can be done at
+   compile time, as PERL_FS_VERSION, so should we just delete it?  */
+#  ifndef PERL_FS_VER_FMT
+#    define PERL_FS_VER_FMT	"%d.%d.%d"
+#  endif
+#endif
+
+#ifndef PERL_FS_VERSION
+#  define PERL_FS_VERSION	PERL_VERSION_STRING
 #endif
 
 /* This defines a way to flush all output buffers.  This may be a
@@ -3313,7 +3340,7 @@ typedef        struct crypt_data {     /* straight from /usr/include/crypt.h */
 #endif /* threading */
 #endif /* AIX */
 
-#if !defined(OS2) && !defined(MACOS_TRADITIONAL)
+#if !defined(OS2)
 #  include "iperlsys.h"
 #endif
 
@@ -4213,10 +4240,14 @@ EXTCONST char PL_uuemap[65]
 EXTCONST char PL_uudmap[256] =
 #include "uudmap.h"
 ;
+EXTCONST char PL_bitcount[256] =
+#  include "bitcount.h"
+;
 EXTCONST char* const PL_sig_name[] = { SIG_NAME };
 EXTCONST int         PL_sig_num[]  = { SIG_NUM };
 #else
 EXTCONST char PL_uudmap[256];
+EXTCONST char PL_bitcount[256];
 EXTCONST char* const PL_sig_name[];
 EXTCONST int         PL_sig_num[];
 #endif
@@ -4720,6 +4751,10 @@ typedef struct exitlistentry {
 #define PERL_PATCHLEVEL_H_IMPLICIT
 #include "patchlevel.h"
 #undef PERL_PATCHLEVEL_H_IMPLICIT
+
+#define PERL_VERSION_STRING	STRINGIFY(PERL_REVISION) "." \
+				STRINGIFY(PERL_VERSION) "." \
+				STRINGIFY(PERL_SUBVERSION)
 
 #ifdef PERL_GLOBAL_STRUCT
 struct perl_vars {

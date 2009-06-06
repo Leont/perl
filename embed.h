@@ -864,7 +864,6 @@
 #if defined(PERL_IN_SV_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
 #define glob_2number		S_glob_2number
-#define glob_2pv		S_glob_2pv
 #endif
 #endif
 #define sv_2iv_flags		Perl_sv_2iv_flags
@@ -1113,7 +1112,6 @@
 #endif
 #ifdef PERL_CORE
 #define my_attrs		Perl_my_attrs
-#define boot_core_xsutils	Perl_boot_core_xsutils
 #endif
 #if defined(USE_ITHREADS)
 #define cx_dup			Perl_cx_dup
@@ -1127,6 +1125,11 @@
 #define dirp_dup		Perl_dirp_dup
 #define gp_dup			Perl_gp_dup
 #define mg_dup			Perl_mg_dup
+#if defined(PERL_IN_SV_C) || defined(PERL_DECL_PROT)
+#ifdef PERL_CORE
+#define sv_dup_inc_multiple	S_sv_dup_inc_multiple
+#endif
+#endif
 #define sv_dup			Perl_sv_dup
 #define rvpv_dup		Perl_rvpv_dup
 #define parser_dup		Perl_parser_dup
@@ -1288,6 +1291,7 @@
 #define find_beginning		S_find_beginning
 #define forbid_setid		S_forbid_setid
 #define incpush			S_incpush
+#define incpush_use_sep		S_incpush_use_sep
 #define init_interp		S_init_interp
 #define init_ids		S_init_ids
 #define init_main_stash		S_init_main_stash
@@ -3201,7 +3205,6 @@
 #if defined(PERL_IN_SV_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
 #define glob_2number(a)		S_glob_2number(aTHX_ a)
-#define glob_2pv(a,b)		S_glob_2pv(aTHX_ a,b)
 #endif
 #endif
 #define sv_2iv_flags(a,b)	Perl_sv_2iv_flags(aTHX_ a,b)
@@ -3443,7 +3446,6 @@
 #endif
 #ifdef PERL_CORE
 #define my_attrs(a,b)		Perl_my_attrs(aTHX_ a,b)
-#define boot_core_xsutils()	Perl_boot_core_xsutils(aTHX)
 #endif
 #if defined(USE_ITHREADS)
 #define cx_dup(a,b,c,d)		Perl_cx_dup(aTHX_ a,b,c,d)
@@ -3457,6 +3459,11 @@
 #define dirp_dup(a)		Perl_dirp_dup(aTHX_ a)
 #define gp_dup(a,b)		Perl_gp_dup(aTHX_ a,b)
 #define mg_dup(a,b)		Perl_mg_dup(aTHX_ a,b)
+#if defined(PERL_IN_SV_C) || defined(PERL_DECL_PROT)
+#ifdef PERL_CORE
+#define sv_dup_inc_multiple(a,b,c,d)	S_sv_dup_inc_multiple(aTHX_ a,b,c,d)
+#endif
+#endif
 #define sv_dup(a,b)		Perl_sv_dup(aTHX_ a,b)
 #define rvpv_dup(a,b,c)		Perl_rvpv_dup(aTHX_ a,b,c)
 #define parser_dup(a,b)		Perl_parser_dup(aTHX_ a,b)
@@ -3625,7 +3632,8 @@
 #ifdef PERL_CORE
 #define find_beginning(a,b)	S_find_beginning(aTHX_ a,b)
 #define forbid_setid(a,b)	S_forbid_setid(aTHX_ a,b)
-#define incpush(a,b,c,d,e,f)	S_incpush(aTHX_ a,b,c,d,e,f)
+#define incpush(a,b,c)		S_incpush(aTHX_ a,b,c)
+#define incpush_use_sep(a,b,c)	S_incpush_use_sep(aTHX_ a,b,c)
 #define init_interp()		S_init_interp(aTHX)
 #define init_ids()		S_init_ids(aTHX)
 #define init_main_stash()	S_init_main_stash(aTHX)
@@ -3644,7 +3652,7 @@
 #ifdef PERL_CORE
 #define parse_body(a,b)		S_parse_body(aTHX_ a,b)
 #define run_body(a)		S_run_body(aTHX_ a)
-#define incpush_if_exists(a)	S_incpush_if_exists(aTHX_ a)
+#define incpush_if_exists(a,b,c)	S_incpush_if_exists(aTHX_ a,b,c)
 #endif
 #endif
 #if defined(PERL_IN_PP_C) || defined(PERL_DECL_PROT)

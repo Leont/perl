@@ -124,16 +124,14 @@ static I32 utf16rev_textfilter(pTHX_ int idx, SV *sv, int maxlen);
 #   define UTF ((PL_linestr && DO_UTF8(PL_linestr)) || (PL_hints & HINT_UTF8))
 #endif
 
+/* The maximum number of characters preceding the unrecognized one to display */
+#define UNRECOGNIZED_PRECEDE_COUNT 10
+
 /* In variables named $^X, these are the legal values for X.
  * 1999-02-27 mjd-perl-patch@plover.com */
 #define isCONTROLVAR(x) (isUPPER(x) || strchr("[\\]^_?", (x)))
 
-/* On MacOS, respect nonbreaking spaces */
-#ifdef MACOS_TRADITIONAL
-#define SPACE_OR_TAB(c) ((c)==' '||(c)=='\312'||(c)=='\t')
-#else
 #define SPACE_OR_TAB(c) ((c)==' '||(c)=='\t')
-#endif
 
 /* LEX_* are values for PL_lex_state, the state of the lexer.
  * They are arranged oddly so that the guard on the switch statement
@@ -3657,8 +3655,17 @@ Perl_yylex(pTHX)
     default:
 	if (isIDFIRST_lazy_if(s,UTF))
 	    goto keylookup;
-	len = UTF ? Perl_utf8_length(aTHX_ (U8 *) PL_linestart, (U8 *) s) : (STRLEN) (s - PL_linestart);
-	Perl_croak(aTHX_ "Unrecognized character \\x%02X in column %d", *s & 255, (int) len + 1);
+	{
+        unsigned char c = *s;
+        len = UTF ? Perl_utf8_length(aTHX_ (U8 *) PL_linestart, (U8 *) s) : (STRLEN) (s - PL_linestart);
+        if (len > UNRECOGNIZED_PRECEDE_COUNT) {
+            d = UTF ? (char *) Perl_utf8_hop(aTHX_ (U8 *) s, -UNRECOGNIZED_PRECEDE_COUNT) : s - UNRECOGNIZED_PRECEDE_COUNT;
+        } else {
+            d = PL_linestart;
+        }	
+        *s = '\0';
+        Perl_croak(aTHX_ "Unrecognized character \\x%02X; marked by <-- HERE after %s<-- HERE near column %d", c, d, (int) len + 1);
+    }
     case 4:
     case 26:
 	goto fake_eof;			/* emulate EOF on ^D or ^Z */
@@ -3948,7 +3955,6 @@ Perl_yylex(pTHX)
 			*s = '#';	/* Don't try to parse shebang line */
 		}
 #endif /* ALTERNATE_SHEBANG */
-#ifndef MACOS_TRADITIONAL
 		if (!d &&
 		    *s == '#' &&
 		    ipathend > ipath &&
@@ -3964,7 +3970,7 @@ Perl_yylex(pTHX)
 		    while (s < PL_bufend && isSPACE(*s))
 			s++;
 		    if (s < PL_bufend) {
-			Newxz(newargv,PL_origargc+3,char*);
+			Newx(newargv,PL_origargc+3,char*);
 			newargv[1] = s;
 			while (s < PL_bufend && !isSPACE(*s))
 			    s++;
@@ -3979,7 +3985,6 @@ Perl_yylex(pTHX)
 		    PERL_FPU_POST_EXEC
 		    Perl_croak(aTHX_ "Can't exec %s", ipath);
 		}
-#endif
 		if (d) {
 		    while (*d && !isSPACE(*d))
 			d++;
@@ -4042,9 +4047,6 @@ Perl_yylex(pTHX)
       "\t(Maybe you didn't strip carriage returns after a network transfer?)\n");
 #endif
     case ' ': case '\t': case '\f': case 013:
-#ifdef MACOS_TRADITIONAL
-    case '\312':
-#endif
 #ifdef PERL_MAD
 	PL_realtokenstart = -1;
 	if (!PL_thiswhite)
@@ -4287,7 +4289,10 @@ Perl_yylex(pTHX)
 	BOop(OP_BIT_XOR);
     case '[':
 	PL_lex_brackets++;
-	/* FALL THROUGH */
+	{
+	    const char tmp = *s++;
+	    OPERATOR(tmp);
+	}
     case '~':
 	if (s[1] == '~'
 	    && (PL_expect == XOPERATOR || PL_expect == XTERMORDORDOR))
@@ -4337,6 +4342,7 @@ Perl_yylex(pTHX)
 		    case KEY_or:
 		    case KEY_and:
 		    case KEY_for:
+		    case KEY_foreach:
 		    case KEY_unless:
 		    case KEY_if:
 		    case KEY_while:
@@ -4372,11 +4378,6 @@ Perl_yylex(pTHX)
 		    if (len == 6 && strnEQ(SvPVX(sv), "unique", len)) {
 			sv_free(sv);
 			if (PL_in_my == KEY_our) {
-#ifdef USE_ITHREADS
-			    GvUNIQUE_on(cGVOPx_gv(pl_yylval.opval));
-#else
-			    /* skip to avoid loading attributes.pm */
-#endif
 			    deprecate(":unique");
 			}
 			else
@@ -4391,7 +4392,7 @@ Perl_yylex(pTHX)
 		    }
 		    else if (!PL_in_my && len == 6 && strnEQ(SvPVX(sv), "locked", len)) {
 			sv_free(sv);
-			CvLOCKED_on(PL_compcv);
+			deprecate(":locked");
 		    }
 		    else if (!PL_in_my && len == 6 && strnEQ(SvPVX(sv), "method", len)) {
 			sv_free(sv);

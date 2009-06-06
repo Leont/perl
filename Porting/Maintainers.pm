@@ -18,49 +18,81 @@ use vars qw(@ISA @EXPORT_OK $VERSION);
 @ISA = qw(Exporter);
 @EXPORT_OK = qw(%Modules %Maintainers
 		get_module_files get_module_pat
-		show_results process_options);
-$VERSION = 0.02;
+		show_results process_options files_to_modules
+		reload_manifest);
+$VERSION = 0.03;
 require Exporter;
 
 use File::Find;
 use Getopt::Long;
 
 my %MANIFEST;
-if (open(MANIFEST, "MANIFEST")) {
-    while (<MANIFEST>) {
-	if (/^(\S+)\t+(.+)$/) {
-	    $MANIFEST{$1}++;
+
+# (re)read the MANIFEST file, blowing away any previous effort
+
+sub reload_manifest {
+    %MANIFEST = ();
+    if (open(MANIFEST, "MANIFEST")) {
+	while (<MANIFEST>) {
+	    if (/^(\S+)/) {
+		$MANIFEST{$1}++;
+	    }
+	    else {
+		warn "MANIFEST:$.: malformed line: $_\n";
+	    }
 	}
+	close MANIFEST;
+    } else {
+	die "$0: Failed to open MANIFEST for reading: $!\n";
     }
-    close MANIFEST;
-} else {
-    die "$0: Failed to open MANIFEST for reading: $!\n";
 }
+
+reload_manifest;
+
 
 sub get_module_pat {
     my $m = shift;
     split ' ', $Modules{$m}{FILES};
 }
 
+# exand dir/ or foo* into a full list of files
+#
+sub expand_glob {
+    sort { lc $a cmp lc $b }
+	map {
+	    -f $_ ? # File as-is.
+		$_ :
+		-d _ ? # Recurse into directories.
+		do {
+		    my @files;
+		    find(
+			 sub {
+			     push @files, $File::Find::name
+				 if -f $_ && exists $MANIFEST{$File::Find::name};
+			 }, $_);
+		    @files;
+		}
+	    # The rest are globbable patterns; expand the glob, then
+	    # recurively perform directory expansion on any results
+	    : expand_glob(grep -e $_,glob($_))
+	    } @_;
+}
+
 sub get_module_files {
     my $m = shift;
-    sort { lc $a cmp lc $b }
-    map {
-	-f $_ ? # Files as-is.
-	    $_ :
-	    -d _ ? # Recurse into directories.
-	    do {
-		my @files;
-		find(
-		     sub {
-			 push @files, $File::Find::name
-			     if -f $_ && exists $MANIFEST{$File::Find::name};
-		     }, $_);
-		@files;
-	    }
-	: glob($_) # The rest are globbable patterns.
-	} get_module_pat($m);
+    my %exclude;
+    my @files;
+    for (get_module_pat($m)) {
+	if (s/^!//) {
+	    $exclude{$_}=1 for expand_glob($_);
+	}
+	else {
+	    push @files, expand_glob($_);
+	}
+    }
+    return grep !$exclude{$_}, @files;
 }
+
 
 sub get_maintainer_modules {
     my $m = shift;
@@ -79,6 +111,8 @@ $0: Usage: $0 [[--maintainer M --module M --files]|[--check] [commit] | [file ..
 			with a file	checks if it has a maintainer
 			with a dir	checks all files have a maintainer
 			otherwise	checks for multiple maintainers
+--checkmani	like --check, but only reports on unclaimed files if they
+		    are in MANIFEST
 --opened	list all modules of modified files
 Matching is case-ignoring regexp, author matching is both by
 the short id and by the full name and email.  A "module" may
@@ -92,6 +126,7 @@ my $Maintainer;
 my $Module;
 my $Files;
 my $Check;
+my $Checkmani;
 my $Opened;
 
 sub process_options {
@@ -102,6 +137,7 @@ sub process_options {
 		       'module=s'	=> \$Module,
 		       'files'		=> \$Files,
 		       'check'		=> \$Check,
+		       'checkmani'	=> \$Checkmani,
 		       'opened'		=> \$Opened,
 		      );
 
@@ -135,6 +171,71 @@ sub process_options {
     return ($Maintainer, $Module, $Files, @Files);
 }
 
+sub files_to_modules {
+    my @Files = @_;
+    my %ModuleByFile;
+
+    for (@Files) { s:^\./:: }
+
+    @ModuleByFile{@Files} = ();
+
+    # First try fast match.
+
+    my %ModuleByPat;
+    for my $module (keys %Modules) {
+	for my $pat (get_module_pat($module)) {
+	    $ModuleByPat{$pat} = $module;
+	}
+    }
+    # Expand any globs.
+    my %ExpModuleByPat;
+    for my $pat (keys %ModuleByPat) {
+	if (-e $pat) {
+	    $ExpModuleByPat{$pat} = $ModuleByPat{$pat};
+	} else {
+	    for my $exp (glob($pat)) {
+		$ExpModuleByPat{$exp} = $ModuleByPat{$pat};
+	    }
+	}
+    }
+    %ModuleByPat = %ExpModuleByPat;
+    for my $file (@Files) {
+	$ModuleByFile{$file} = $ModuleByPat{$file}
+	    if exists $ModuleByPat{$file};
+    }
+
+    # If still unresolved files...
+    if (my @ToDo = grep { !defined $ModuleByFile{$_} } keys %ModuleByFile) {
+
+	# Cannot match what isn't there.
+	@ToDo = grep { -e $_ } @ToDo;
+
+	if (@ToDo) {
+	    # Try prefix matching.
+
+	    # Remove trailing slashes.
+	    for (@ToDo) { s|/$|| }
+
+	    my %ToDo;
+	    @ToDo{@ToDo} = ();
+
+	    for my $pat (keys %ModuleByPat) {
+		last unless keys %ToDo;
+		if (-d $pat) {
+		    my @Done;
+		    for my $file (keys %ToDo) {
+			if ($file =~ m|^$pat|i) {
+			    $ModuleByFile{$file} = $ModuleByPat{$pat};
+			    push @Done, $file;
+			}
+		    }
+		    delete @ToDo{@Done};
+		}
+	    }
+	}
+    }
+    \%ModuleByFile;
+}
 sub show_results {
     my ($Maintainer, $Module, $Files, @Files) = @_;
 
@@ -171,80 +272,24 @@ sub show_results {
 		}
 	    }
 	}
-    } elsif ($Check) {
+    } elsif ($Check or $Checkmani) {
         if( @Files ) {
-	    missing_maintainers( qr{\.(?:[chty]|p[lm]|xs)\z}msx, @Files)
+	    missing_maintainers(
+		$Checkmani
+		    ? sub { -f $_ and exists $MANIFEST{$File::Find::name} }
+		    : sub { /\.(?:[chty]|p[lm]|xs)\z/msx },
+		@Files
+	    );
 	}
 	else { 
 	    duplicated_maintainers();
 	}
     } elsif (@Files) {
-	my %ModuleByFile;
-
-	for (@Files) { s:^\./:: }
-
-	@ModuleByFile{@Files} = ();
-
-	# First try fast match.
-
-	my %ModuleByPat;
-	for my $module (keys %Modules) {
-	    for my $pat (get_module_pat($module)) {
-		$ModuleByPat{$pat} = $module;
-	    }
-	}
-	# Expand any globs.
-	my %ExpModuleByPat;
-	for my $pat (keys %ModuleByPat) {
-	    if (-e $pat) {
-		$ExpModuleByPat{$pat} = $ModuleByPat{$pat};
-	    } else {
-		for my $exp (glob($pat)) {
-		    $ExpModuleByPat{$exp} = $ModuleByPat{$pat};
-		}
-	    }
-	}
-	%ModuleByPat = %ExpModuleByPat;
+	my $ModuleByFile = files_to_modules(@Files);
 	for my $file (@Files) {
-	    $ModuleByFile{$file} = $ModuleByPat{$file}
-	        if exists $ModuleByPat{$file};
-	}
-
-	# If still unresolved files...
-	if (my @ToDo = grep { !defined $ModuleByFile{$_} } keys %ModuleByFile) {
-
-	    # Cannot match what isn't there.
-	    @ToDo = grep { -e $_ } @ToDo;
-
-	    if (@ToDo) {
-		# Try prefix matching.
-
-		# Remove trailing slashes.
-		for (@ToDo) { s|/$|| }
-
-		my %ToDo;
-		@ToDo{@ToDo} = ();
-
-		for my $pat (keys %ModuleByPat) {
-		    last unless keys %ToDo;
-		    if (-d $pat) {
-			my @Done;
-			for my $file (keys %ToDo) {
-			    if ($file =~ m|^$pat|i) {
-				$ModuleByFile{$file} = $ModuleByPat{$pat};
-				push @Done, $file;
-			    }
-			}
-			delete @ToDo{@Done};
-		    }
-		}
-	    }
-	}
-
-	for my $file (@Files) {
-	    if (defined $ModuleByFile{$file}) {
-		my $module     = $ModuleByFile{$file};
-		my $maintainer = $Modules{$ModuleByFile{$file}}{MAINTAINER};
+	    if (defined $ModuleByFile->{$file}) {
+		my $module     = $ModuleByFile->{$file};
+		my $maintainer = $Modules{$ModuleByFile->{$file}}{MAINTAINER};
 		my $upstream   = $Modules{$module}{UPSTREAM}||'unknown';
 		printf "%-15s [%-7s] $module $maintainer $Maintainers{$maintainer}\n", $file, $upstream;
 	    } else {
@@ -292,7 +337,7 @@ sub missing_maintainers {
     for my $d (@path) {
 	if( -d $d ) { push @dir, $d } else { warn_maintainer($d) }
     }
-    find sub { warn_maintainer($File::Find::name) if /$check/; }, @dir
+    find sub { warn_maintainer($File::Find::name) if $check->() }, @dir
 	if @dir;
 }
 

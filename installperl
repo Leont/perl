@@ -158,7 +158,8 @@ my @nonxs = grep(!/^Errno$/, split(' ', $Config{'nonxs_ext'}));
 
 find(sub {
     if (($File::Find::name =~ m{^ext\b(.*)/([^/]+)\.pm$}) &&
-        ! grep { $File::Find::name =~ /^ext\/$_/ } @nonxs)
+        ! grep { (my $dir = $_) =~ s/\//-/g;
+                 $File::Find::name =~ /^ext\/$dir/ } @nonxs)
     {
 	my($path, $modname) = ($1,$2);
 
@@ -745,7 +746,7 @@ sub installlib {
     return if $name eq 'ExtUtils/XSSymSet.pm' and !$Is_VMS;
 
     my $installlib = $installprivlib;
-    if ($dir =~ /^auto/ ||
+    if ($dir =~ /^auto\// ||
 	  ($name =~ /^(.*)\.(?:pm|pod)$/ && $archpms{$1}) ||
 	  ($name =~ /^(.*)\.(?:h|lib)$/i && ($Is_W32 || $Is_NetWare)) ||
 	  $name=~/^Config_(heavy\|git)\.pl\z/

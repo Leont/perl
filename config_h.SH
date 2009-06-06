@@ -140,26 +140,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_dlerror HAS_DLERROR	/**/
 
-/* SETUID_SCRIPTS_ARE_SECURE_NOW:
- *	This symbol, if defined, indicates that the bug that prevents
- *	setuid scripts from being secure is not present in this kernel.
- */
-/* DOSUID:
- *	This symbol, if defined, indicates that the C program should
- *	check the script that it is executing for setuid/setgid bits, and
- *	attempt to emulate setuid/setgid on systems that have disabled
- *	setuid #! scripts because the kernel can't do it securely.
- *	It is up to the package designer to make sure that this emulation
- *	is done securely.  Among other things, it should do an fstat on
- *	the script it just opened to make sure it really is a setuid/setgid
- *	script, it should make sure the arguments passed correspond exactly
- *	to the argument on the #! line, and it should not trust any
- *	subprocesses to which it must pass the filename rather than the
- *	file descriptor of the script to be executed.
- */
-#$d_suidsafe SETUID_SCRIPTS_ARE_SECURE_NOW	/**/
-#$d_dosuid DOSUID		/**/
-
 /* HAS_DUP2:
  *	This symbol, if defined, indicates that the dup2 routine is
  *	available to duplicate file descriptors.
@@ -3301,6 +3281,26 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$ebcdic	EBCDIC 		/**/
 
+/* SETUID_SCRIPTS_ARE_SECURE_NOW:
+ *	This symbol, if defined, indicates that the bug that prevents
+ *	setuid scripts from being secure is not present in this kernel.
+ */
+/* DOSUID:
+ *	This symbol, if defined, indicates that the C program should
+ *	check the script that it is executing for setuid/setgid bits, and
+ *	attempt to emulate setuid/setgid on systems that have disabled
+ *	setuid #! scripts because the kernel can't do it securely.
+ *	It is up to the package designer to make sure that this emulation
+ *	is done securely.  Among other things, it should do an fstat on
+ *	the script it just opened to make sure it really is a setuid/setgid
+ *	script, it should make sure the arguments passed correspond exactly
+ *	to the argument on the #! line, and it should not trust any
+ *	subprocesses to which it must pass the filename rather than the
+ *	file descriptor of the script to be executed.
+ */
+#$d_suidsafe SETUID_SCRIPTS_ARE_SECURE_NOW	/**/
+#$d_dosuid DOSUID		/**/
+
 /* PERL_USE_DEVEL:
  *	This symbol, if defined, indicates that Perl was configured with
  *	-Dusedevel, to enable development features.  This should not be
@@ -3574,6 +3574,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_futimes HAS_FUTIMES		/**/
 
+/* HAS_GETADDRINFO:
+ *	This symbol, if defined, indicates that the getaddrinfo() function
+ *	is available for use.
+ */
+#$d_getaddrinfo HAS_GETADDRINFO		/**/
+
 /* HAS_GETCWD:
  *	This symbol, if defined, indicates that the getcwd routine is
  *	available to get the current working directory.
@@ -3610,6 +3616,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_getmntent HAS_GETMNTENT		/**/
 
+/* HAS_GETNAMEINFO:
+ *	This symbol, if defined, indicates that the getnameinfo() function
+ *	is available for use.
+ */
+#$d_getnameinfo HAS_GETNAMEINFO		/**/
+
 /* HAS_GETPRPWNAM:
  *	This symbol, if defined, indicates that the getprpwnam system call is
  *	available to retrieve protected (shadow) password entries by name.
@@ -3633,6 +3645,18 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	available.  If scalbnl is also present we can emulate frexpl.
  */
 #$d_ilogbl HAS_ILOGBL		/**/
+
+/* HAS_INETNTOP:
+ *	This symbol, if defined, indicates that the inet_ntop() function
+ *	is available to parse IPv4 and IPv6 strings.
+ */
+#$d_inetntop HAS_INETNTOP		/**/
+
+/* HAS_INETPTON:
+ *	This symbol, if defined, indicates that the inet_pton() function
+ *	is available to parse IPv4 and IPv6 strings.
+ */
+#$d_inetpton HAS_INETPTON		/**/
 
 /* HAS_INT64_T:
  *     This symbol will defined if the C compiler supports int64_t.

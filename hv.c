@@ -134,11 +134,15 @@ Perl_free_tied_hv_pool(pTHX)
 HEK *
 Perl_hek_dup(pTHX_ HEK *source, CLONE_PARAMS* param)
 {
-    HEK *shared = (HEK*)ptr_table_fetch(PL_ptr_table, source);
+    HEK *shared;
 
     PERL_ARGS_ASSERT_HEK_DUP;
     PERL_UNUSED_ARG(param);
 
+    if (!source)
+	return NULL;
+
+    shared = (HEK*)ptr_table_fetch(PL_ptr_table, source);
     if (shared) {
 	/* We already shared this hash key.  */
 	(void)share_hek_hek(shared);
@@ -1439,8 +1443,10 @@ Perl_hv_copy_hints_hv(pTHX_ HV *const ohv)
 	hv_iterinit(ohv);
 	while ((entry = hv_iternext_flags(ohv, 0))) {
 	    SV *const sv = newSVsv(HeVAL(entry));
+	    SV *heksv = newSVhek(HeKEY_hek(entry));
 	    sv_magic(sv, NULL, PERL_MAGIC_hintselem,
-		     (char *)newSVhek (HeKEY_hek(entry)), HEf_SVKEY);
+		     (char *)heksv, HEf_SVKEY);
+	    SvREFCNT_dec(heksv);
 	    (void)hv_store_flags(hv, HeKEY(entry), HeKLEN(entry),
 				 sv, HeHASH(entry), HeKFLAGS(entry));
 	}
@@ -2137,26 +2143,31 @@ Perl_hv_iternext_flags(pTHX_ HV *hv, I32 flags)
             }
 	}
     }
-    while (!entry) {
-	/* OK. Come to the end of the current list.  Grab the next one.  */
 
-	iter->xhv_riter++; /* HvRITER(hv)++ */
-	if (iter->xhv_riter > (I32)xhv->xhv_max /* HvRITER(hv) > HvMAX(hv) */) {
-	    /* There is no next one.  End of the hash.  */
-	    iter->xhv_riter = -1; /* HvRITER(hv) = -1 */
-	    break;
-	}
-	entry = (HvARRAY(hv))[iter->xhv_riter];
+    /* Skip the entire loop if the hash is empty.   */
+    if ((flags & HV_ITERNEXT_WANTPLACEHOLDERS)
+	? HvTOTALKEYS(hv) : HvUSEDKEYS(hv)) {
+	while (!entry) {
+	    /* OK. Come to the end of the current list.  Grab the next one.  */
 
-        if (!(flags & HV_ITERNEXT_WANTPLACEHOLDERS)) {
-            /* If we have an entry, but it's a placeholder, don't count it.
-	       Try the next.  */
-	    while (entry && HeVAL(entry) == &PL_sv_placeholder)
-		entry = HeNEXT(entry);
+	    iter->xhv_riter++; /* HvRITER(hv)++ */
+	    if (iter->xhv_riter > (I32)xhv->xhv_max /* HvRITER(hv) > HvMAX(hv) */) {
+		/* There is no next one.  End of the hash.  */
+		iter->xhv_riter = -1; /* HvRITER(hv) = -1 */
+		break;
+	    }
+	    entry = (HvARRAY(hv))[iter->xhv_riter];
+
+	    if (!(flags & HV_ITERNEXT_WANTPLACEHOLDERS)) {
+		/* If we have an entry, but it's a placeholder, don't count it.
+		   Try the next.  */
+		while (entry && HeVAL(entry) == &PL_sv_placeholder)
+		    entry = HeNEXT(entry);
+	    }
+	    /* Will loop again if this linked list starts NULL
+	       (for HV_ITERNEXT_WANTPLACEHOLDERS)
+	       or if we run through it and find only placeholders.  */
 	}
-	/* Will loop again if this linked list starts NULL
-	   (for HV_ITERNEXT_WANTPLACEHOLDERS)
-	   or if we run through it and find only placeholders.  */
     }
 
     if (oldentry && HvLAZYDEL(hv)) {		/* was deleted earlier? */
@@ -2320,13 +2331,10 @@ S_unshare_hek_or_pvn(pTHX_ const HEK *hek, const char *str, I32 len, U32 hash)
 	   shared hek  */
 	assert (he->shared_he_he.hent_hek == hek);
 
-	LOCK_STRTAB_MUTEX;
 	if (he->shared_he_he.he_valu.hent_refcount - 1) {
 	    --he->shared_he_he.he_valu.hent_refcount;
-	    UNLOCK_STRTAB_MUTEX;
 	    return;
 	}
-	UNLOCK_STRTAB_MUTEX;
 
         hash = HEK_HASH(hek);
     } else if (len < 0) {
@@ -2348,7 +2356,6 @@ S_unshare_hek_or_pvn(pTHX_ const HEK *hek, const char *str, I32 len, U32 hash)
     } */
     xhv = (XPVHV*)SvANY(PL_strtab);
     /* assert(xhv_array != 0) */
-    LOCK_STRTAB_MUTEX;
     first = oentry = &(HvARRAY(PL_strtab))[hash & (I32) HvMAX(PL_strtab)];
     if (he) {
 	const HE *const he_he = &(he->shared_he_he);
@@ -2383,7 +2390,6 @@ S_unshare_hek_or_pvn(pTHX_ const HEK *hek, const char *str, I32 len, U32 hash)
         }
     }
 
-    UNLOCK_STRTAB_MUTEX;
     if (!entry && ckWARN_d(WARN_INTERNAL))
 	Perl_warner(aTHX_ packWARN(WARN_INTERNAL),
                     "Attempt to free non-existent shared string '%s'%s"
@@ -2448,7 +2454,6 @@ S_share_hek_flags(pTHX_ const char *str, I32 len, register U32 hash, int flags)
     */
 
     /* assert(xhv_array != 0) */
-    LOCK_STRTAB_MUTEX;
     entry = (HvARRAY(PL_strtab))[hindex];
     for (;entry; entry = HeNEXT(entry)) {
 	if (HeHASH(entry) != hash)		/* strings can't be equal */
@@ -2506,7 +2511,6 @@ S_share_hek_flags(pTHX_ const char *str, I32 len, register U32 hash, int flags)
     }
 
     ++entry->he_valu.hent_refcount;
-    UNLOCK_STRTAB_MUTEX;
 
     if (flags & HVhek_FREEKEY)
 	Safefree(str);

@@ -1519,10 +1519,9 @@ PERL_CALLCONV int	Perl_magic_clearhint(pTHX_ SV* sv, MAGIC* mg)
 	assert(sv); assert(mg)
 
 PERL_CALLCONV int	Perl_magic_clearisa(pTHX_ SV* sv, MAGIC* mg)
-			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_2);
 #define PERL_ARGS_ASSERT_MAGIC_CLEARISA	\
-	assert(sv); assert(mg)
+	assert(mg)
 
 PERL_CALLCONV int	Perl_magic_clearpack(pTHX_ SV* sv, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
@@ -1731,10 +1730,9 @@ PERL_CALLCONV int	Perl_magic_setregexp(pTHX_ SV* sv, MAGIC* mg)
 	assert(sv); assert(mg)
 
 PERL_CALLCONV int	Perl_magic_setsig(pTHX_ SV* sv, MAGIC* mg)
-			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_2);
 #define PERL_ARGS_ASSERT_MAGIC_SETSIG	\
-	assert(sv); assert(mg)
+	assert(mg)
 
 PERL_CALLCONV int	Perl_magic_setsubstr(pTHX_ SV* sv, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
@@ -3012,11 +3010,6 @@ STATIC bool	S_glob_2number(pTHX_ GV* const gv)
 #define PERL_ARGS_ASSERT_GLOB_2NUMBER	\
 	assert(gv)
 
-STATIC char*	S_glob_2pv(pTHX_ GV* const gv, STRLEN * const len)
-			__attribute__nonnull__(pTHX_1);
-#define PERL_ARGS_ASSERT_GLOB_2PV	\
-	assert(gv)
-
 #endif
 /* PERL_CALLCONV IV	Perl_sv_2iv(pTHX_ SV *sv); */
 PERL_CALLCONV IV	Perl_sv_2iv_flags(pTHX_ SV *const sv, const I32 flags);
@@ -4028,7 +4021,6 @@ PERL_CALLCONV OP *	Perl_my_attrs(pTHX_ OP *o, OP *attrs)
 #define PERL_ARGS_ASSERT_MY_ATTRS	\
 	assert(o)
 
-PERL_CALLCONV void	Perl_boot_core_xsutils(pTHX);
 #if defined(USE_ITHREADS)
 PERL_CALLCONV PERL_CONTEXT*	Perl_cx_dup(pTHX_ PERL_CONTEXT* cx, I32 ix, I32 max, CLONE_PARAMS* param)
 			__attribute__warn_unused_result__
@@ -4095,6 +4087,15 @@ PERL_CALLCONV MAGIC*	Perl_mg_dup(pTHX_ MAGIC *mg, CLONE_PARAMS *const param)
 #define PERL_ARGS_ASSERT_MG_DUP	\
 	assert(param)
 
+#if defined(PERL_IN_SV_C) || defined(PERL_DECL_PROT)
+STATIC SV **	S_sv_dup_inc_multiple(pTHX_ SV *const *source, SV **dest, SSize_t items, CLONE_PARAMS *const param)
+			__attribute__nonnull__(pTHX_1)
+			__attribute__nonnull__(pTHX_2)
+			__attribute__nonnull__(pTHX_4);
+#define PERL_ARGS_ASSERT_SV_DUP_INC_MULTIPLE	\
+	assert(source); assert(dest); assert(param)
+
+#endif
 PERL_CALLCONV SV*	Perl_sv_dup(pTHX_ const SV *const sstr, CLONE_PARAMS *const param)
 			__attribute__warn_unused_result__
 			__attribute__nonnull__(pTHX_2);
@@ -4759,7 +4760,16 @@ STATIC void	S_find_beginning(pTHX_ SV* linestr_sv, PerlIO *rsfp)
 	assert(linestr_sv); assert(rsfp)
 
 STATIC void	S_forbid_setid(pTHX_ const char flag, const bool suidscript);
-STATIC void	S_incpush(pTHX_ const char *dir, bool addsubdirs, bool addoldvers, bool usesep, bool canrelocate, bool unshift);
+STATIC void	S_incpush(pTHX_ const char *const dir, STRLEN len, U32 flags)
+			__attribute__nonnull__(pTHX_1);
+#define PERL_ARGS_ASSERT_INCPUSH	\
+	assert(dir)
+
+STATIC void	S_incpush_use_sep(pTHX_ const char *p, STRLEN len, U32 flags)
+			__attribute__nonnull__(pTHX_1);
+#define PERL_ARGS_ASSERT_INCPUSH_USE_SEP	\
+	assert(p)
+
 STATIC void	S_init_interp(pTHX);
 STATIC void	S_init_ids(pTHX);
 STATIC void	S_init_main_stash(pTHX);
@@ -4798,10 +4808,12 @@ STATIC void*	S_parse_body(pTHX_ char **env, XSINIT_t xsinit);
 STATIC void	S_run_body(pTHX_ I32 oldscope)
 			__attribute__noreturn__;
 
-STATIC SV *	S_incpush_if_exists(pTHX_ SV *dir)
-			__attribute__nonnull__(pTHX_1);
+STATIC SV *	S_incpush_if_exists(pTHX_ AV *const av, SV *dir, SV *const stem)
+			__attribute__nonnull__(pTHX_1)
+			__attribute__nonnull__(pTHX_2)
+			__attribute__nonnull__(pTHX_3);
 #define PERL_ARGS_ASSERT_INCPUSH_IF_EXISTS	\
-	assert(dir)
+	assert(av); assert(dir); assert(stem)
 
 #endif
 
@@ -5957,10 +5969,9 @@ PERL_CALLCONV int	Perl_my_socketpair(int family, int type, int protocol, int fd[
 PERL_CALLCONV int	Perl_my_dirfd(pTHX_ DIR* dir);
 #ifdef PERL_OLD_COPY_ON_WRITE
 PERL_CALLCONV SV*	Perl_sv_setsv_cow(pTHX_ SV* dstr, SV* sstr)
-			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_2);
 #define PERL_ARGS_ASSERT_SV_SETSV_COW	\
-	assert(dstr); assert(sstr)
+	assert(sstr)
 
 #endif
 

@@ -1,9 +1,18 @@
 #!/usr/bin/perl -w
-
 #
-# Generate overload.h
+# Unconditionally regenerate:
+#
+#    overload.h
+#    overload.c
+#    lib/overload/numbers.pm
+#
+# from information stored in the DATA section of this file.
+#
 # This allows the order of overloading constants to be changed.
-# 
+#
+# Accepts the standard regen_lib -q and -v args.
+#
+# This script is normally invoked from regen.pl.
 
 BEGIN {
     # Get function prototypes
@@ -23,9 +32,9 @@ while (<DATA>) {
   push @names, $name;
 }
 
-safer_unlink ('overload.h', 'overload.c', catfile(qw(lib overload numbers.pm)));
-my $c = safer_open("overload.c");
-my $h = safer_open("overload.h");
+safer_unlink (catfile(qw(lib overload numbers.pm)));
+my $c = safer_open("overload.c-new");
+my $h = safer_open("overload.h-new");
 mkdir("lib/overload") unless -d catdir(qw(lib overload));
 my $p = safer_open(catfile(qw(lib overload numbers.pm)));
 
@@ -141,6 +150,8 @@ EOT
 safer_close($h);
 safer_close($c);
 safer_close($p);
+rename_if_different("overload.c-new", "overload.c");
+rename_if_different("overload.h-new","overload.h");
 
 __DATA__
 # Fallback should be the first
@@ -217,5 +228,6 @@ repeat_ass	(x=
 concat		(.
 concat_ass	(.=
 smart		(~~
+ftest           (-X
 # Note: Perl_Gv_AMupdate() assumes that DESTROY is the last entry
 DESTROY		DESTROY

@@ -133,6 +133,7 @@
 #define vms_image_init	Perl_vms_image_init
 #define my_tmpfile		Perl_my_tmpfile
 #define vmstrnenv           	Perl_vmstrnenv            
+#define my_fgetname(a, b)	Perl_my_fgetname(a, b)
 #if !defined(PERL_IMPLICIT_CONTEXT)
 #define my_getenv_len		Perl_my_getenv_len
 #define vmssetenv		Perl_vmssetenv
@@ -362,9 +363,9 @@
 #define NATIVE_HINTS		(PL_hints >> HINT_V_VMSISH)  /* used in op.c */
 
 #ifdef PERL_IMPLICIT_CONTEXT
-#  define TEST_VMSISH(h)	(my_perl && (PL_curcop->op_private & ((h) >> HINT_V_VMSISH)))
+#  define TEST_VMSISH(h)	(my_perl && PL_curcop && (PL_curcop->op_private & ((h) >> HINT_V_VMSISH)))
 #else
-#  define TEST_VMSISH(h)	(PL_curcop->op_private & ((h) >> HINT_V_VMSISH))
+#  define TEST_VMSISH(h)	(PL_curcop && (PL_curcop->op_private & ((h) >> HINT_V_VMSISH)))
 #endif
 #define VMSISH_STATUS	TEST_VMSISH(HINT_M_VMSISH_STATUS)
 #define VMSISH_TIME	TEST_VMSISH(HINT_M_VMSISH_TIME)
@@ -417,7 +418,12 @@ struct interp_intern {
 #define HAS_KILL
 #define HAS_WAIT
 
-#define PERL_FS_VER_FMT		"%d_%d_%d"
+#ifndef PERL_CORE
+#  define PERL_FS_VER_FMT	"%d_%d_%d"
+#endif
+#define PERL_FS_VERSION		STRINGIFY(PERL_REVISION) "_" \
+				STRINGIFY(PERL_VERSION) "_" \
+				STRINGIFY(PERL_SUBVERSION)
 /* Temporary; we need to add support for this to Configure.Com */
 #ifdef PERL_INC_VERSION_LIST
 #  undef PERL_INC_VERSION_LIST
@@ -520,6 +526,7 @@ struct interp_intern {
 #  define fwrite my_fwrite     /* for PerlSIO_fwrite */
 #  define fdopen my_fdopen
 #  define fclose my_fclose
+#  define fgetname(a, b) my_fgetname(a, b)
 #ifdef HAS_SYMLINK
 #  define symlink my_symlink
 #endif
@@ -973,6 +980,7 @@ bool	Perl_vms_do_exec (pTHX_ const char *);
 FILE *  my_fdopen (int, const char *);
 int     my_fclose (FILE *);
 int     my_fwrite (const void *, size_t, size_t, FILE *);
+char *  Perl_my_fgetname (FILE *fp, char *buf);
 #ifdef HAS_SYMLINK
 int     Perl_my_symlink(pTHX_ const char *path1, const char *path2);
 #endif

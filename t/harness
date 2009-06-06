@@ -6,8 +6,8 @@
 BEGIN {
     chdir 't' if -d 't';
     @INC = '../lib';              # pick up only this build's lib
-    $ENV{PERL5LIB} = '../lib';    # so children will see it too
 }
+delete $ENV{PERL5LIB};
 
 my $torture; # torture testing?
 
@@ -188,14 +188,16 @@ if (@ARGV) {
 	my $mani  = File::Spec->catfile(File::Spec->updir, "MANIFEST");
 	if (open(MANI, $mani)) {
 	    my @manitests = ();
-	    my $ext_pat = $^O eq 'MSWin32' ? '(?:win32/)?ext' : 'ext';
 	    while (<MANI>) { # similar code in t/TEST
-		if (m!^($ext_pat/(\S+)/+(?:[^/\s]+\.t|test\.pl)|lib/\S+?(?:\.t|test\.pl))\s!) {
+		if (m!^(ext/(\S+)/+(?:[^/\s]+\.t|test\.pl)|lib/\S+?(?:\.t|test\.pl))\s!) {
 		    my ($test, $extension) = ($1, $2);
 		    if (defined $extension) {
 			$extension =~ s!/t$!!;
 			# XXX Do I want to warn that I'm skipping these?
 			next if $skip{$extension};
+			my $flat_extension = $extension;
+			$flat_extension =~ s!-!/!g;
+			next if $skip{$flat_extension}; # Foo/Bar may live in Foo-Bar
 		    }
 		    push @manitests, File::Spec->catfile($updir, $test);
 		}
@@ -207,7 +209,6 @@ if (@ARGV) {
 	} else {
 	    warn "$0: cannot open $mani: $!\n";
 	}
-	push @last, <Module_Pluggable/*.t>;
 	push @last, <pod/*.t>;
 	push @last, <x2p/*.t>;
 
@@ -242,6 +243,12 @@ if ($jobs) {
 		     }
 		    );
     }
+    $h->callback(
+		 parser_args => sub {
+		     my ( $args, $test ) = @_;
+		     push @{ $args->{switches} }, '-I../lib';
+		 }
+		);
     $h->runtests(@tests);
 } else {
     Test::Harness::runtests @tests;

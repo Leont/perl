@@ -1,3 +1,4 @@
+/Attribute
 /B.pm
 /B
 /Compress
@@ -46,6 +47,7 @@
 /Math/BigInt/FastCalc.pm
 /Module/Pluggable.pm
 /Module/Pluggable
+/NDBM_File.pm
 /O.pm
 /ODBM_File.pm
 /Opcode.pm
@@ -72,7 +74,7 @@
 /Unicode/Normalize.pm
 /XS
 /XSLoader.pm
-/attrs.pm
+/attributes.pm
 /auto
 /encoding.pm
 /lib.pm

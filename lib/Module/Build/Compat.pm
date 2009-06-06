@@ -2,7 +2,7 @@ package Module::Build::Compat;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.31012';
+$VERSION = '0.32_01';
 
 use File::Spec;
 use IO::File;
@@ -143,6 +143,7 @@ EOF
     eval "use Module::Build::Compat 0.02; 1" or die $@;
     %s
     Module::Build::Compat->run_build_pl(args => \@ARGV);
+    exit(0) unless(-e 'Build'); # cpantesters convention
     require %s;
     Module::Build::Compat->write_makefile(build_class => '%s');
 EOF
@@ -279,7 +280,7 @@ sub fake_makefile {
 
   my $Build = 'Build' . $filetype . ' --makefile_env_macros 1';
   my $unlink = $class->oneliner('1 while unlink $ARGV[0]', [], [$args{makefile}]);
-  $unlink =~ s/\$/\$\$/g;
+  $unlink =~ s/\$/\$\$/g unless $class->is_vmsish;
 
   my $maketext = <<"EOF";
 all : force_do_it

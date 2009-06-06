@@ -533,10 +533,13 @@ PERLVARI(Iglob_index,	int,	0)
 
 PERLVAR(Iparser,	yy_parser *)	/* current parser state */
 
-PERLVAR(Ibitcount,	char *)
-
+/* Array of signal handlers, indexed by signal number, through which the C
+   signal handler dispatches.  */
 PERLVAR(Ipsig_ptr, SV**)
-PERLVAR(Ipsig_name, SV**)
+/* Array of names of signals, indexed by signal number, for (re)use as the first
+   argument to a signal handler.   Only one block of memory is allocated for
+   both psig_name and psig_ptr.  */
+PERLVAR(Ipsig_name, SV**)		
 
 #if defined(PERL_IMPLICIT_SYS)
 PERLVAR(IMem,		struct IPerlMem*)

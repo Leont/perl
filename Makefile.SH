@@ -201,12 +201,20 @@ static_list=' '
 for f in $static_ext; do
 	base=`echo "$f" | sed 's/.*\///'`
 	static_list="$static_list lib/auto/$f/$base\$(LIB_EXT)"
+    : Parallel makes reveal that we have some interdependencies
+    this_target="lib/auto/$f/$base\$(LIB_EXT)"
+    case $f in
+	Math/BigInt/FastCalc|Devel/NYTProf) extra_dep="$extra_dep
+$this_target: lib/auto/List/Util/Util\$(LIB_EXT)" ;;
+	Unicode/Normalize) extra_dep="$extra_dep
+$this_target: uni.data" ;;
+    esac
 done
 
 nonxs_list=' '
 for f in $nonxs_ext; do
-    base=`echo "$f" | sed 's/.*\///'`
-    nonxs_list="$nonxs_list ext/$f/pm_to_blib"
+    p=`echo "$f" | tr / -`
+    nonxs_list="$nonxs_list ext/$p/pm_to_blib"
 done
 
 dtrace_h=''
@@ -400,7 +408,7 @@ esac
 ## In the following dollars and backticks do not need the extra backslash.
 $spitshell >>$Makefile <<'!NO!SUBS!'
 
-private = preplibrary $(CONFIGPM) $(CONFIGPOD) lib/ExtUtils/Miniperl.pm
+private = preplibrary $(CONFIGPM) $(CONFIGPOD) lib/ExtUtils/Miniperl.pm git_version.h
 
 # Files to be built with variable substitution before miniperl
 # is available.
@@ -439,7 +447,7 @@ h = $(h1) $(h2) $(h3) $(h4) $(h5)
 
 c1 = av.c scope.c op.c doop.c doio.c dump.c gv.c hv.c mg.c reentr.c mro.c perl.c
 c2 = perly.c pp.c pp_hot.c pp_ctl.c pp_sys.c regcomp.c regexec.c utf8.c sv.c
-c3 = taint.c toke.c util.c deb.c run.c universal.c xsutils.c pad.c globals.c
+c3 = taint.c toke.c util.c deb.c run.c universal.c pad.c globals.c
 c4 = perlio.c perlapi.c numeric.c mathoms.c locale.c pp_pack.c pp_sort.c
 c5 = $(madlysrc) $(mallocsrc)
 
@@ -448,11 +456,14 @@ c = $(c1) $(c2) $(c3) $(c4) $(c5) miniperlmain.c perlmain.c opmini.c perlmini.c
 obj0 = op$(OBJ_EXT) perl$(OBJ_EXT)
 obj1 = $(madlyobj) $(mallocobj) gv$(OBJ_EXT) toke$(OBJ_EXT) perly$(OBJ_EXT) pad$(OBJ_EXT) regcomp$(OBJ_EXT) dump$(OBJ_EXT) util$(OBJ_EXT) mg$(OBJ_EXT) reentr$(OBJ_EXT) mro$(OBJ_EXT)
 obj2 = hv$(OBJ_EXT) av$(OBJ_EXT) run$(OBJ_EXT) pp_hot$(OBJ_EXT) sv$(OBJ_EXT) pp$(OBJ_EXT) scope$(OBJ_EXT) pp_ctl$(OBJ_EXT) pp_sys$(OBJ_EXT)
-obj3 = doop$(OBJ_EXT) doio$(OBJ_EXT) regexec$(OBJ_EXT) utf8$(OBJ_EXT) taint$(OBJ_EXT) deb$(OBJ_EXT) universal$(OBJ_EXT) xsutils$(OBJ_EXT) globals$(OBJ_EXT) perlio$(OBJ_EXT) perlapi$(OBJ_EXT) numeric$(OBJ_EXT) mathoms$(OBJ_EXT) locale$(OBJ_EXT) pp_pack$(OBJ_EXT) pp_sort$(OBJ_EXT)
+obj3 = doop$(OBJ_EXT) doio$(OBJ_EXT) regexec$(OBJ_EXT) utf8$(OBJ_EXT) taint$(OBJ_EXT) deb$(OBJ_EXT) universal$(OBJ_EXT) globals$(OBJ_EXT) perlio$(OBJ_EXT) perlapi$(OBJ_EXT) numeric$(OBJ_EXT) mathoms$(OBJ_EXT) locale$(OBJ_EXT) pp_pack$(OBJ_EXT) pp_sort$(OBJ_EXT)
 
 mini_obj =  $(obj1) $(obj2) $(obj3) $(ARCHOBJS)
 ndt_obj = $(obj0) $(obj1) $(obj2) $(obj3) $(ARCHOBJS)
 obj = $(ndt_obj) $(DTRACE_O)
+
+perltoc_pod_prereqs = extra.pods pod/perlapi.pod pod/perldelta.pod pod/perlintern.pod
+generated_pods = pod/perltoc.pod $(perltoc_pod_prereqs)
 
 lintflags = \
     -b \
@@ -521,7 +532,7 @@ splintfiles = $(c1)
 .c.s:
 	$(CCCMDSRC) -S $*.c
 
-all: $(FIRSTMAKEFILE) miniperl$(EXE_EXT) miniperl extra.pods $(private) $(unidatafiles) $(public) $(dynamic_ext) $(nonxs_ext) extras.make
+all: $(FIRSTMAKEFILE) miniperl$(EXE_EXT) miniperl $(generated_pods) $(private) $(unidatafiles) $(public) $(dynamic_ext) $(nonxs_ext) extras.make
 	@echo " ";
 	@echo "	Everything is up to date. Type '$(MAKE) test' to run test suite."
 
@@ -569,10 +580,10 @@ perlmini.c: perl.c
 perlmini\$(OBJ_EXT): perlmini.c
 	\$(CCCMD) \$(PLDLFLAGS) $DPERL_IS_MINIPERL perlmini.c
 
-globals\$(OBJ_EXT): uudmap.h
+globals\$(OBJ_EXT): uudmap.h bitcount.h
 
-uudmap.h: generate_uudmap\$(HOST_EXE_EXT)
-	\$(RUN) ./generate_uudmap\$(HOST_EXE_EXT) >uudmap.h
+uudmap.h bitcount.h: generate_uudmap\$(HOST_EXE_EXT)
+	\$(RUN) ./generate_uudmap\$(HOST_EXE_EXT) uudmap.h bitcount.h
 
 generate_uudmap\$(HOST_EXE_EXT): generate_uudmap\$(OBJ_EXT)
 	\$(CC) -o generate_uudmap\$(EXE_EXT) \$(LDFLAGS) generate_uudmap\$(OBJ_EXT) \$(libs)
@@ -914,7 +925,7 @@ $spitshell >>$Makefile <<!GROK!THIS!
 .PHONY: makeppport
 makeppport: miniperl\$(EXE_EXT) \$(CONFIGPM)
 	-@for f in Makefile.PL PPPort_pm.PL PPPort_xs.PL ppport_h.PL; do \
-	(cd ext/Devel/PPPort && `pwd`/run.sh ../../../miniperl$(EXE_EXT) -I../../../lib \$\$f); \
+	(cd ext/Devel-PPPort && `pwd`/run.sh ../../miniperl$(EXE_EXT) -I../../lib \$\$f); \
 	done
 
 !GROK!THIS!
@@ -942,7 +953,7 @@ preplibrary: miniperl$(EXE_EXT) $(CONFIGPM) lib/lib.pm $(PREPLIBRARY_LIBPERL)
 	$(LDLIBPTH) $(RUN) ./miniperl$(EXE_EXT) -Ilib -MAutoSplit -MFile::Find -e 'find ({no_chdir=>1, wanted => sub {autosplit_lib_modules($$_) if /\.pm$$/}}, "lib")'
 	$(MAKE) lib/re.pm
 
-$(CONFIGPM_FROM_CONFIG_SH) $(CONFIGPOD): config.sh miniperl$(EXE_EXT) configpm Porting/Glossary
+$(CONFIGPM_FROM_CONFIG_SH) $(CONFIGPOD): config.sh miniperl$(EXE_EXT) configpm Porting/Glossary lib/Config_git.pl
 	$(LDLIBPTH) $(RUN) ./miniperl$(EXE_EXT) -Ilib configpm
 
 lib/ExtUtils/Miniperl.pm: miniperlmain.c miniperl$(EXE_EXT) minimod.pl $(CONFIGPM)
@@ -954,7 +965,7 @@ lib/re.pm: ext/re/re.pm
 
 $(plextract):	miniperl$(EXE_EXT) $(CONFIGPM) x2p/s2p
 	@-rm -f $@
-	$(LDLIBPTH) $(RUN) ./miniperl$(EXE_EXT) -I`pwd`/lib $@.PL
+	$(LDLIBPTH) $(RUN) ./miniperl$(EXE_EXT) -I"`pwd`/lib" $@.PL
 
 x2p/s2p: miniperl$(EXE_EXT) $(CONFIGPM) x2p/s2p.PL
 	cd x2p; $(LDLIBPTH) $(MAKE) s2p
@@ -969,18 +980,26 @@ uni.data: miniperl$(EXE_EXT) $(CONFIGPM) lib/unicore/mktables
 	cd lib/unicore && $(LDLIBPTH) $(RUN) ../../miniperl$(EXE_EXT) -I../../lib mktables -w
 	touch uni.data
 
+# perl$(EXE_EXT) and ext because buildtoc uses Text::Wrap uses re
+# But also this ensures that all extensions are built before we try to scan
+# them, which picks up Devel::PPPort's documentation.
+pod/perltoc.pod: $(perltoc_pod_prereqs) perl$(EXE_EXT) $(ext) pod/buildtoc
+	$(LDLIBPTH) $(RUN) ./perl$(EXE_EXT) -Ilib pod/buildtoc --build-toc -q
+
+pod/perlapi.pod pod/perlintern.pod: miniperl$(EXE_EXT) autodoc.pl embed.fnc
+	$(LDLIBPTH) $(RUN) ./miniperl$(EXE_EXT) -Ilib autodoc.pl
+
+pod/perldelta.pod: pod/perl5110delta.pod
+	$(LNS) perl5110delta.pod pod/perldelta.pod
+
 extra.pods: miniperl$(EXE_EXT)
 	-@test ! -f extra.pods || rm -f `cat extra.pods`
 	-@rm -f extra.pods
 	-@for x in `grep -l '^=[a-z]' README.* | grep -v README.vms` ; do \
 	    nx=`echo $$x | sed -e "s/README\.//"`; \
-	    cd pod ; $(LNS) ../$$x "perl"$$nx".pod" ; cd .. ; \
+	    $(LNS) ../$$x "pod/perl"$$nx".pod" ; \
 	    echo "pod/perl"$$nx".pod" >> extra.pods ; \
 	done
-	-@rm -f pod/perlvms.pod
-	-@test -f vms/perlvms.pod && cd pod && $(LNS) ../vms/perlvms.pod perlvms.pod && cd .. && echo "pod/perlvms.pod" >> extra.pods
-	-@rm -f pod/perldelta.pod
-	-@test -f pod/perl5110delta.pod && cd pod && $(LNS) perl5110delta.pod perldelta.pod && cd .. && echo "pod/perldelta.pod" >> extra.pods # See buildtoc
 
 extras.make: perl$(EXE_EXT)
 	-@test ! -s extras.lst || PATH="`pwd`:${PATH}" PERL5LIB="`pwd`/lib" $(LDLIBPTH) $(RUN) ./perl -Ilib -MCPAN -e '@ARGV&&make(@ARGV)' `cat extras.lst`
@@ -1170,11 +1189,11 @@ veryclean:	cleanup_unpacked_files _verycleaner _mopup _clobber
 
 # Do not 'make _mopup' directly.
 _mopup:
-	rm -f *$(OBJ_EXT) *$(LIB_EXT) all perlmain.c opmini.c perlmini.c uudmap.h generate_uudmap$(EXE_EXT)
+	rm -f *$(OBJ_EXT) *$(LIB_EXT) all perlmain.c opmini.c perlmini.c uudmap.h generate_uudmap$(EXE_EXT) bitcount.h
 	-rmdir .depending
 	-@test -f extra.pods && rm -f `cat extra.pods`
 	-@test -f vms/README_vms.pod && rm -f vms/README_vms.pod
-	-rm -f perl.exp ext.libs extra.pods uni.data opmini.o perlmini.o
+	-rm -f perl.exp ext.libs $(generated_pods) uni.data opmini.o perlmini.o
 	-rm -f perl.export perl.dll perl.libexp perl.map perl.def
 	-rm -f perl.loadmap miniperl.loadmap perl.prelmap miniperl.prelmap
 	-rm -f perl.third lib*.so.perl.third perl.3log t/perl.third t/perl.3log
@@ -1358,7 +1377,7 @@ test.torture torturetest:	test_prep
 
 minitest.utf16: minitest.prep
 	- cd t && (rm -f perl$(EXE_EXT); $(LNS) ../miniperl$(EXE_EXT) perl$(EXE_EXT)) \
-		&& $(LDLIBPTH) $(RUN) ./perl TEST -minitest -utf16 base/*.t comp/*.t cmd/*.t run/*.t io/*.t op/*.t uni/*.t mro/*.t </dev/tty
+		&& $(LDLIBPTH) $(RUN) ./perl TEST -minitest -utf16 base/*.t comp/*.t cmd/*.t run/*.t io/*.t op/*.t uni/*.t </dev/tty
 
 test.utf16 check.utf16: test_prep
 	PERL=./perl $(MAKE) TEST_ARGS=-utf16 _test
@@ -1419,7 +1438,7 @@ minitest.prep:
 # is crashing.
 minitest: miniperl$(EXE_EXT) lib/re.pm minitest.prep
 	- cd t && (rm -f perl$(EXE_EXT); $(LNS) ../miniperl$(EXE_EXT) perl$(EXE_EXT)) \
-		&& $(LDLIBPTH) $(RUN) ./perl TEST -minitest base/*.t comp/*.t cmd/*.t run/*.t io/*.t op/*.t uni/*.t mro/*.t </dev/tty
+		&& $(LDLIBPTH) $(RUN) ./perl TEST -minitest base/*.t comp/*.t cmd/*.t run/*.t io/*.t op/*.t uni/*.t </dev/tty
 
 # Test via harness
 
