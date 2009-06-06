@@ -209,7 +209,23 @@ and faster.
 Decrements the reference count of the given SV.
 
 =for apidoc Am|svtype|SvTYPE|SV* sv
-Returns the type of the SV.  See C<svtype>.
+Returns the type of the SV (following binds, as usual).  See C<svtype>.
+
+=for apidoc Am|svtype|SvBTYPE|SV* sv
+Returns the type of the SV--even if it's a BIND.  See C<svtype>.
+
+=for apidoc Am|svtype|SvFLAGS|SV* sv
+Returns the flags of the SV (following binds, as usual), including the type.
+If the SV is a bind, then SVf_READONLY may be included as a result.  Not an
+lvalue.
+
+=for apidoc Am|svtype|SvFLAGS|SV* sv
+Returns the flags of the SV (following binds, as usual), including the type.
+If the SV is a bind, then any extra SVf_READONLY will not be included.  Is
+an lvalue.
+
+=for apidoc Am|svtype|SvBFLAGS|SV* sv
+Returns the flags of the SV--even if it's a BIND--including the type.
 
 =for apidoc Am|void|SvUPGRADE|SV* sv|svtype type
 Used to upgrade an SV to a more complex form.  Uses C<sv_upgrade> to
@@ -218,8 +234,6 @@ perform the upgrade if necessary.  See C<svtype>.
 =cut
 */
 
-#define SvANY(sv)	(sv)->sv_any
-#define SvFLAGS(sv)	(sv)->sv_flags
 #define SvREFCNT(sv)	(sv)->sv_refcnt
 
 #if defined(__GNUC__) && !defined(PERL_GCC_BRACE_GROUPS_FORBIDDEN)
@@ -283,7 +297,39 @@ perform the upgrade if necessary.  See C<svtype>.
 #endif
 
 #define SVTYPEMASK	0xff
-#define SvTYPE(sv)	((svtype)((sv)->sv_flags & SVTYPEMASK))
+#define SvBTYPE(sv)	((svtype)((sv)->sv_flags & SVTYPEMASK))
+#define SvBFLAGS(sv)	(sv)->sv_flags
+#define SvBANY(sv)	(sv)->sv_any
+
+#define SvBIND(sv)	(SvBTYPE(sv) == SVt_BIND)
+
+/* XXX - removes const - OK? */
+#if defined(__GNUC__) && !defined(PERL_GCC_BRACE_GROUPS_FORBIDDEN)
+#  ifdef DEBUGGING
+#    define SvBOUNDp_attr2(func,sv)						\
+    (*({									\
+	const SV *_sv = (const void *)*(&(sv)); /* forbid side effects */	\
+	if (SvBIND(_sv))							\
+	    _sv = SvBVX_const(_sv);						\
+	&(func((SV*)_sv));							\
+    }))
+#  else
+#    define SvBOUNDp_attr2(func,sv)				\
+    (*({							\
+	const SV *_sv = (const void *)(sv);			\
+	if (SvBIND(_sv))					\
+	    _sv = SvBVX_const(_sv);				\
+	&(func((SV*)_sv));					\
+    }))
+#  endif
+#  define SvBOUNDp_attr(func,sv)  SvBOUNDp_attr2(func,sv)
+#else
+#  define SvBOUNDp_attr(func,sv)  func(SvBIND(sv) ? SvBVX_const(sv) : (SV*)(sv))
+#endif
+#define SvTYPE(sv)	 ((svtype)(SvBOUNDp_attr(SvBFLAGS,sv) & SVTYPEMASK))
+#define SvFLAGS(sv)	 SvBOUNDp_attr(SvBFLAGS,sv)
+#define SvANY(sv)	 SvBOUNDp_attr(SvBANY,sv)
+#define SvFLAGS_bind(sv) (SvBIND(sv) ? (SVf_READONLY | SvBFLAGS(SvBVX_const(sv))) : SvBFLAGS(sv))
 
 /* Sadly there are some parts of the core that have pointers to already-freed
    SV heads, and rely on being able to tell that they are now free. So mark
@@ -764,17 +810,13 @@ Set the actual length of the string which is in the SV.  See C<SvIV_set>.
 #define assert_not_glob(sv)	
 #endif
 
-#define SvOK(sv)		((SvTYPE(sv) == SVt_BIND)		\
-				 ? (SvFLAGS(SvRV(sv)) & SVf_OK)		\
-				 : (SvFLAGS(sv) & SVf_OK))
-#define SvOK_off(sv)		(assert_not_ROK(sv) assert_not_glob(sv)	\
-				 SvFLAGS(sv) &=	~(SVf_OK|		\
-						  SVf_IVisUV|SVf_UTF8),	\
-							SvOOK_off(sv))
-#define SvOK_off_exc_UV(sv)	(assert_not_ROK(sv)			\
-				 SvFLAGS(sv) &=	~(SVf_OK|		\
-						  SVf_UTF8),		\
-							SvOOK_off(sv))
+#define SvOK(sv)		(SvFLAGS(sv) & SVf_OK)
+#define SvOK_off(sv)		(assert_not_ROK(sv) assert_not_glob(sv)			\
+				 SvFLAGS(sv) &= ~(SVf_OK|SVf_IVisUV|SVf_UTF8),	\
+						    SvOOK_off(sv))
+#define SvOK_off_exc_UV(sv)	(assert_not_ROK(sv)				\
+				 SvFLAGS(sv) &= ~(SVf_OK|SVf_UTF8),		\
+						    SvOOK_off(sv))
 
 #define SvOKp(sv)		(SvFLAGS(sv) & (SVp_IOK|SVp_NOK|SVp_POK))
 #define SvIOKp(sv)		(SvFLAGS(sv) & SVp_IOK)
@@ -948,9 +990,9 @@ the scalar's value cannot change unless written to.
 #define SvOBJECT_on(sv)		(SvFLAGS(sv) |= SVs_OBJECT)
 #define SvOBJECT_off(sv)	(SvFLAGS(sv) &= ~SVs_OBJECT)
 
-#define SvREADONLY(sv)		(SvFLAGS(sv) & SVf_READONLY)
-#define SvREADONLY_on(sv)	(SvFLAGS(sv) |= SVf_READONLY)
-#define SvREADONLY_off(sv)	(SvFLAGS(sv) &= ~SVf_READONLY)
+#define SvREADONLY(sv)		(SvFLAGS_bind(sv) & SVf_READONLY)
+#define SvREADONLY_on(sv)	(SvFLAGS(sv)     |= SVf_READONLY)
+#define SvREADONLY_off(sv)	(SvFLAGS(sv)    &= ~SVf_READONLY)
 
 #define SvSCREAM(sv) ((SvFLAGS(sv) & (SVp_SCREAM|SVp_POK)) == (SVp_SCREAM|SVp_POK))
 #define SvSCREAM_on(sv)		(SvFLAGS(sv) |= SVp_SCREAM)
@@ -1036,9 +1078,6 @@ the scalar's value cannot change unless written to.
 	    ((XPVMG*) SvANY(sv))->xmg_u.xmg_ourstash = st;	\
 	} STMT_END
 
-#ifdef PERL_DEBUG_COW
-#else
-#endif
 #define SvRVx(sv) SvRV(sv)
 
 #ifdef PERL_DEBUG_COW
@@ -1047,6 +1086,8 @@ the scalar's value cannot change unless written to.
 #  define SvIVX(sv) (0 + ((XPVIV*) SvANY(sv))->xiv_iv)
 #  define SvUVX(sv) (0 + ((XPVUV*) SvANY(sv))->xuv_uv)
 #  define SvNVX(sv) (-0.0 + ((XPVNV*) SvANY(sv))->xnv_u.xnv_nv)
+#  define SvBVX(sv) (0 + (sv)->sv_u.svu_rv)
+#  define SvBVX_const(sv) (0 + (sv)->sv_u.svu_rv)
 #  define SvRV(sv) (0 + (sv)->sv_u.svu_rv)
 #  define SvRV_const(sv) (0 + (sv)->sv_u.svu_rv)
 /* Don't test the core XS code yet.  */
@@ -1072,6 +1113,16 @@ the scalar's value cannot change unless written to.
 
 #  if defined (DEBUGGING) && defined(__GNUC__) && !defined(PERL_GCC_BRACE_GROUPS_FORBIDDEN)
 /* These get expanded inside other macros that already use a variable _sv  */
+#    define SvBVX(sv)							\
+	(*({ SV *const _svrv = MUTABLE_SV(sv);				\
+	    assert(SvBTYPE(_svrv) == SVt_BIND);				\
+	    &((_svrv)->sv_u.svu_rv);					\
+	 }))
+#    define SvBVX_const(sv)						\
+	({  const SV *const _svrv = (const SV *)(sv);			\
+	    assert(SvBTYPE(_svrv) == SVt_BIND);				\
+	    ((_svrv)->sv_u.svu_rv);					\
+	 })
 #    define SvPVX(sv)							\
 	(*({ SV *const _svpvx = MUTABLE_SV(sv);				\
 	    assert(SvTYPE(_svpvx) >= SVt_PV);				\
@@ -1157,12 +1208,30 @@ the scalar's value cannot change unless written to.
 #    define SvIVX(sv) ((XPVIV*) SvANY(sv))->xiv_iv
 #    define SvUVX(sv) ((XPVUV*) SvANY(sv))->xuv_uv
 #    define SvNVX(sv) ((XPVNV*) SvANY(sv))->xnv_u.xnv_nv
+#    define SvBVX(sv) ((sv)->sv_u.svu_rv)
+#    define SvBVX_const(sv) ((sv)->sv_u.svu_rv)
 #    define SvRV(sv) ((sv)->sv_u.svu_rv)
 #    define SvRV_const(sv) (0 + (sv)->sv_u.svu_rv)
 #    define SvMAGIC(sv)	((XPVMG*)  SvANY(sv))->xmg_u.xmg_magic
 #    define SvSTASH(sv)	((XPVMG*)  SvANY(sv))->xmg_stash
 #  endif
 #endif
+
+#if defined(__GNUC__) && !defined(PERL_GCC_BRACE_GROUPS_FORBIDDEN)
+#  define SvBOUNDt(type,sv)					\
+    ({								\
+	const type *const _sv = (sv);				\
+	SvBIND(_sv) ? (type*)SvBVX_const(_sv) : (type*)_sv;	\
+    })
+#else
+#  define SvBOUNDt(type,sv)  (SvBIND(sv) ? (type*)SvBVX_const(sv) : (type*)(sv))
+#endif
+
+/* XXX - THESE REMOVE CONST - DO WE NEED _const VARIANTS?  -Chip */
+#define SvBOUND(sv)  SvBOUNDt(SV,sv)
+#define AvBOUND(av)  SvBOUNDt(AV,av)
+#define HvBOUND(hv)  SvBOUNDt(HV,hv)
+#define RX_BOUND(rx) SvBOUNDt(REGEXP,rx) /* yay for inconsistent naming conventions */
 
 #ifndef PERL_POISON
 /* Given that these two are new, there can't be any existing code using them

@@ -927,15 +927,13 @@ struct xpv {
 
 #define copy_length(type, last_member) \
 	STRUCT_OFFSET(type, last_member) \
-	+ sizeof (((type*)SvANY((const SV *)0))->last_member)
+	+ sizeof (((type*)SvBANY((const SV *)0))->last_member)
 
 static const struct body_details bodies_by_type[] = {
     { sizeof(HE), 0, 0, SVt_NULL,
       FALSE, NONV, NOARENA, FIT_ARENA(0, sizeof(HE)) },
 
-    /* The bind placeholder pretends to be an RV for now.
-       Also it's marked as "can't upgrade" to stop anyone using it before it's
-       implemented.  */
+    /* A bind is pretty much an RV, only it can't be upgraded. */
     { 0, 0, 0, SVt_BIND, TRUE, NONV, NOARENA, 0 },
 
     /* IVs are in the head, so the allocation size is 0.
