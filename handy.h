@@ -110,6 +110,13 @@ Null SV pointer. (No longer available when C<PERL_CORE> is defined.)
 # define HAS_BOOL 1
 #endif
 
+/* Inline functions - welcome to the 1980s */
+#if defined(_MSC_VER)
+#  define PINLINE static _inline
+#else
+#  define PINLINE static inline
+#endif
+
 /* Try to figure out __func__ or __FUNCTION__ equivalent, if any.
  * XXX Should really be a Configure probe, with HAS__FUNCTION__
  *     and FUNCTION__ as results.
