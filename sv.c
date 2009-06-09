@@ -204,17 +204,17 @@ Perl_offer_nice_chunk(pTHX_ void *const chunk, const U32 chunk_size)
 #endif
 
 #ifdef PERL_POISON
-#  define SvARENA_CHAIN(sv)	((sv)->sv_u.svu_rv)
+#  define SvARENA_CHAIN(sv)		((sv)->sv_u.svu_rv)
 #  define SvARENA_CHAIN_SET(sv,val)	(sv)->sv_u.svu_rv = MUTABLE_SV((val))
 /* Whilst I'd love to do this, it seems that things like to check on
    unreferenced scalars
-#  define POSION_SV_HEAD(sv)	PoisonNew(sv, 1, struct STRUCT_SV)
+#  define POSION_SV_HEAD(sv)		PoisonNew(sv, 1, struct STRUCT_SV)
 */
-#  define POSION_SV_HEAD(sv)	PoisonNew(&SvANY(sv), 1, void *), \
-				PoisonNew(&SvREFCNT(sv), 1, U32)
+#  define POSION_SV_HEAD(sv)		PoisonNew(&SvANY(sv), 1, void *), \
+					PoisonNew(&SvREFCNT(sv), 1, U32)
 #else
-#  define SvARENA_CHAIN(sv)	SvANY(sv)
-#  define SvARENA_CHAIN_SET(sv,val)	SvANY(sv) = (void *)(val)
+#  define SvARENA_CHAIN(sv)		SvBANY(sv)
+#  define SvARENA_CHAIN_SET(sv,val)	SvBANY(sv) = (void *)(val)
 #  define POSION_SV_HEAD(sv)
 #endif
 
@@ -283,9 +283,9 @@ S_new_SV(pTHX_ const char *file, int line, const char *func)
 	uproot_SV(sv);
     else
 	sv = S_more_sv(aTHX);
-    SvANY(sv) = 0;
+    SvBFLAGS(sv) = 0;
+    SvBANY(sv) = 0;
     SvREFCNT(sv) = 1;
-    SvFLAGS(sv) = 0;
     sv->sv_debug_optype = PL_op ? PL_op->op_type : 0;
     sv->sv_debug_line = (U16) (PL_parser && PL_parser->copline != NOLINE
 		? PL_parser->copline
@@ -314,9 +314,9 @@ S_new_SV(pTHX_ const char *file, int line, const char *func)
 	    uproot_SV(p);				\
 	else						\
 	    (p) = S_more_sv(aTHX);			\
-	SvANY(p) = 0;					\
+	SvBFLAGS(p) = 0;				\
+	SvBANY(p) = 0;					\
 	SvREFCNT(p) = 1;				\
-	SvFLAGS(p) = 0;					\
 	MEM_LOG_NEW_SV(p, __FILE__, __LINE__, FUNCTION__);  \
     } STMT_END
 #endif
@@ -344,7 +344,7 @@ S_del_sv(pTHX_ SV *p)
     if (DEBUG_D_TEST) {
 	SV* sva;
 	bool ok = 0;
-	for (sva = PL_sv_arenaroot; sva; sva = MUTABLE_SV(SvANY(sva))) {
+	for (sva = PL_sv_arenaroot; sva; sva = MUTABLE_SV(SvARENA_CHAIN(sva))) {
 	    const SV * const sv = sva + 1;
 	    const SV * const svend = &sva[SvREFCNT(sva)];
 	    if (p >= sv && p < svend) {
@@ -392,9 +392,9 @@ S_sv_add_arena(pTHX_ char *const ptr, const U32 size, const U32 flags)
     PERL_ARGS_ASSERT_SV_ADD_ARENA;
 
     /* The first SV in an arena isn't an SV. */
-    SvANY(sva) = (void *) PL_sv_arenaroot;		/* ptr to next arena */
+    SvBFLAGS(sva) = flags;			/* FAKE if not to be freed */
+    SvARENA_CHAIN_SET(sva, PL_sv_arenaroot);	/* ptr to next arena */
     SvREFCNT(sva) = size / sizeof(SV);		/* number of SV slots */
-    SvFLAGS(sva) = flags;			/* FAKE if not to be freed */
 
     PL_sv_arenaroot = sva;
     PL_sv_root = sva + 1;
@@ -408,14 +408,14 @@ S_sv_add_arena(pTHX_ char *const ptr, const U32 size, const U32 flags)
 #endif
 	/* Must always set typemask because it's always checked in on cleanup
 	   when the arenas are walked looking for objects.  */
-	SvFLAGS(sv) = SVTYPEMASK;
+	SvBFLAGS(sv) = SVTYPEMASK;
 	sv++;
     }
     SvARENA_CHAIN_SET(sv, 0);
 #ifdef DEBUGGING
     SvREFCNT(sv) = 0;
 #endif
-    SvFLAGS(sv) = SVTYPEMASK;
+    SvBFLAGS(sv) = SVTYPEMASK;
 }
 
 /* visit(): call the named function for each non-free SV in the arenas
@@ -430,13 +430,14 @@ S_visit(pTHX_ SVFUNC_t f, const U32 flags, const U32 mask)
 
     PERL_ARGS_ASSERT_VISIT;
 
-    for (sva = PL_sv_arenaroot; sva; sva = MUTABLE_SV(SvANY(sva))) {
+    for (sva = PL_sv_arenaroot; sva; sva = MUTABLE_SV(SvARENA_CHAIN(sva))) {
 	register const SV * const svend = &sva[SvREFCNT(sva)];
 	register SV* sv;
 	for (sv = sva + 1; sv < svend; ++sv) {
-	    if (SvTYPE(sv) != SVTYPEMASK
-		    && (sv->sv_flags & mask) == flags
-		    && SvREFCNT(sv))
+	    if (SvBTYPE(sv) != SVTYPEMASK
+		&& !SvBIND(sv)
+		&& (SvBFLAGS(sv) & mask) == flags
+		&& SvREFCNT(sv))
 	    {
 		(FCALL)(aTHX_ sv);
 		++visited;
@@ -453,10 +454,8 @@ S_visit(pTHX_ SVFUNC_t f, const U32 flags, const U32 mask)
 static void
 do_report_used(pTHX_ SV *const sv)
 {
-    if (SvTYPE(sv) != SVTYPEMASK) {
-	PerlIO_printf(Perl_debug_log, "****\n");
-	sv_dump(sv);
-    }
+    PerlIO_printf(Perl_debug_log, "****\n");
+    sv_dump(sv);
 }
 #endif
 
