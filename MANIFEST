@@ -290,6 +290,8 @@ ext/Devel-PPPort/parts/inc/cop	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/exception	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/format	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/grok	Devel::PPPort include
+ext/Devel-PPPort/parts/inc/gv	Devel::PPPort include
+ext/Devel-PPPort/parts/inc/HvNAME	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/limits	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/magic	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/memory	Devel::PPPort include
@@ -299,6 +301,7 @@ ext/Devel-PPPort/parts/inc/MY_CXT	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/newCONSTSUB	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/newRV	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/newSVpv	Devel::PPPort include
+ext/Devel-PPPort/parts/inc/newSV_type	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/podtest	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/ppphbin	Devel::PPPort include
 ext/Devel-PPPort/parts/inc/ppphdoc	Devel::PPPort include
@@ -366,6 +369,8 @@ ext/Devel-PPPort/t/cop.t	Devel::PPPort test file
 ext/Devel-PPPort/t/exception.t	Devel::PPPort test file
 ext/Devel-PPPort/t/format.t	Devel::PPPort test file
 ext/Devel-PPPort/t/grok.t	Devel::PPPort test file
+ext/Devel-PPPort/t/gv.t	Devel::PPPort test file
+ext/Devel-PPPort/t/HvNAME.t	Devel::PPPort test file
 ext/Devel-PPPort/t/limits.t	Devel::PPPort test file
 ext/Devel-PPPort/t/magic.t	Devel::PPPort test file
 ext/Devel-PPPort/t/memory.t	Devel::PPPort test file
@@ -375,6 +380,7 @@ ext/Devel-PPPort/t/MY_CXT.t	Devel::PPPort test file
 ext/Devel-PPPort/t/newCONSTSUB.t	Devel::PPPort test file
 ext/Devel-PPPort/t/newRV.t	Devel::PPPort test file
 ext/Devel-PPPort/t/newSVpv.t	Devel::PPPort test file
+ext/Devel-PPPort/t/newSV_type.t	Devel::PPPort test file
 ext/Devel-PPPort/TODO		Devel::PPPort Todo
 ext/Devel-PPPort/t/podtest.t	Devel::PPPort test file
 ext/Devel-PPPort/t/ppphtest.t	Devel::PPPort test file
@@ -848,13 +854,11 @@ ext/IO-Compress/t/110encode-gzip.t	IO::Compress
 ext/IO-Compress/t/110encode-rawdeflate.t	IO::Compress
 ext/IO-Compress/t/110encode-zip.t	IO::Compress
 ext/IO-Compress/t/999pod.t	IO::Compress
-ext/IO-Compress/t/99pod.t	IO::Compress
 ext/IO-Compress/t/cz-01version.t	IO::Compress
 ext/IO-Compress/t/cz-05examples.t	IO::Compress
 ext/IO-Compress/t/cz-06gzsetp.t	IO::Compress
 ext/IO-Compress/t/cz-08encoding.t	IO::Compress
 ext/IO-Compress/t/cz-14gzopen.t	IO::Compress
-ext/IO-Compress/t/cz-99pod.t	IO::Compress
 ext/IO-Compress/t/globmapper.t	IO::Compress
 ext/IO/hints/sco.pl		Hint for IO for named architecture
 ext/IO/IO.pm			Top-level interface to IO::* classes
@@ -1170,7 +1174,6 @@ ext/Storable/hints/gnuknetbsd.pl	Hint for Storable for named architecture
 ext/Storable/hints/hpux.pl	Hint for Storable for named architecture
 ext/Storable/hints/linux.pl	Hint for Storable for named architecture
 ext/Storable/Makefile.PL	Storable extension
-ext/Storable/MANIFEST		Storable extension
 ext/Storable/README		Storable extension
 ext/Storable/Storable.pm	Storable extension
 ext/Storable/Storable.xs	Storable extension
@@ -2145,12 +2148,10 @@ lib/ExtUtils/Install.pm		Handles 'make install' on extensions
 lib/ExtUtils/instmodsh		Give information about installed extensions
 lib/ExtUtils/Liblist/Kid.pm	Does the real work of the above
 lib/ExtUtils/Liblist.pm		Locates libraries
-lib/ExtUtils/MakeMaker/bytes.pm	Version agnostic bytes.pm
 lib/ExtUtils/MakeMaker/Config.pm	MakeMaker wrapper for Config
 lib/ExtUtils/MakeMaker/FAQ.pod	MakeMaker FAQ
 lib/ExtUtils/MakeMaker.pm	Write Makefiles for extensions
 lib/ExtUtils/MakeMaker/Tutorial.pod	Writing a module with MakeMaker
-lib/ExtUtils/MakeMaker/vmsish.pm	Platform agnostic vmsish.pm
 lib/ExtUtils/Manifest.pm	Utilities to write MANIFEST files
 lib/ExtUtils/MANIFEST.SKIP	The default MANIFEST.SKIP
 lib/ExtUtils/Mkbootstrap.pm	Writes a bootstrap file (see MakeMaker)
@@ -2188,7 +2189,6 @@ lib/ExtUtils/t/basic_finish.pl	See if MakeMaker can build a module (part 2)
 lib/ExtUtils/t/basic.pl		See if MakeMaker can build a module (part 1)
 lib/ExtUtils/t/basic.t		See if MakeMaker can build a module (wrapper for basic.pl and basic_finish.pl)
 lib/ExtUtils/t/build_man.t	Set if MakeMaker builds manpages
-lib/ExtUtils/t/bytes.t		Test ExtUtils::MakeMaker::bytes
 lib/ExtUtils/t/can_write_dir.t	Does the _can_write_dir function of ExtUtils::Install work properly?
 lib/ExtUtils/t/cd.t		Test to see cd works
 lib/ExtUtils/t/config.t		Test ExtUtils::MakeMaker::Config
@@ -2215,8 +2215,8 @@ lib/ExtUtils/t/maketext_filter.t	See if maketext_filter works
 lib/ExtUtils/t/Manifest.t	See if ExtUtils::Manifest works
 lib/ExtUtils/t/metafile_data.t	See if META.yml handling works
 lib/ExtUtils/t/metafile_file.t	See if META.yml handling works
-lib/ExtUtils/t/min_perl_version.t	Test the MIN_PERL_VERSION argument to WriteMakefile.
 lib/ExtUtils/t/miniperl.t	Test MakeMaker with miniperl
+lib/ExtUtils/t/min_perl_version.t	Test the MIN_PERL_VERSION argument to WriteMakefile.
 lib/ExtUtils/t/Mkbootstrap.t	See if ExtUtils::Mkbootstrap works
 lib/ExtUtils/t/MM_Any.t		See if ExtUtils::MM_Any works
 lib/ExtUtils/t/MM_BeOS.t	See if ExtUtils::MM_BeOS works
@@ -2247,7 +2247,6 @@ lib/ExtUtils/t/testdata/reallylongdirectoryname/arch1/Config.pm		test data for M
 lib/ExtUtils/t/testdata/reallylongdirectoryname/arch2/Config.pm		test data for MakeMaker
 lib/ExtUtils/t/testlib.t	See if ExtUtils::testlib works
 lib/ExtUtils/t/VERSION_FROM.t	See if MakeMaker's VERSION_FROM works
-lib/ExtUtils/t/vmsish.t	Test ExtUtils::MakeMaker::vmsish
 lib/ExtUtils/t/WriteEmptyMakefile.t	See if WriteEmptyMakefile works
 lib/ExtUtils/t/writemakefile_args.t	See if WriteMakefile works
 lib/ExtUtils/t/xs.t		Part of MakeMaker's test suite
@@ -2574,7 +2573,6 @@ lib/Module/Build/Platform/Windows.pm	Module::Build
 lib/Module/Build.pm		Module::Build
 lib/Module/Build/PodParser.pm	Module::Build
 lib/Module/Build/PPMMaker.pm	Module::Build
-lib/Module/Build/scripts/bundle.pl	Module::Build
 lib/Module/Build/scripts/config_data	Module::Build
 lib/Module/Build/t/add_property.t	Module::Build
 lib/Module/Build/t/basic.t	Module::Build
@@ -2700,6 +2698,7 @@ lib/NEXT.pm			Pseudo-class NEXT for method redispatch
 lib/NEXT/README			NEXT
 lib/NEXT/t/actual.t		NEXT
 lib/NEXT/t/actuns.t		NEXT
+lib/NEXT/t/dynamically_scoped_regex_vars.t	NEXT
 lib/NEXT/t/next.t		NEXT
 lib/NEXT/t/stringify.t	NEXT
 lib/NEXT/t/unseen.t		NEXT
@@ -3636,7 +3635,6 @@ pod/perllocale.pod		Perl locale support
 pod/perllol.pod			Perl data structures: arrays of arrays
 pod/perlmodinstall.pod		Perl modules: how to install from CPAN
 pod/perlmodlib.PL		Generate pod/perlmodlib.pod
-pod/perlmodlib.pod		Perl modules: how to write and use
 pod/perlmod.pod			Perl modules: how they work
 pod/perlmodstyle.pod		Perl modules: how to write modules with style
 pod/perlnewmod.pod		Perl modules: preparing a new module for distribution
@@ -3989,9 +3987,9 @@ t/lib/h2ph.pht			Generated output from h2ph.h by h2ph, for comparison
 t/lib/HasSigDie.pm		Module for testing base.pm
 t/lib/locale/latin1		Part of locale.t in Latin 1
 t/lib/locale/utf8		Part of locale.t in UTF8
+t/lib/MakeMaker/Test/NoXS.pm		MakeMaker test utilities
 t/lib/MakeMaker/Test/Setup/BFD.pm	MakeMaker test utilities
 t/lib/MakeMaker/Test/Setup/MPV.pm	MakeMaker test utilities
-t/lib/MakeMaker/Test/NoXS.pm		MakeMaker test utilities
 t/lib/MakeMaker/Test/Setup/PL_FILES.pm	MakeMaker test utilities
 t/lib/MakeMaker/Test/Setup/Problem.pm	MakeMaker test utilities
 t/lib/MakeMaker/Test/Setup/Recurs.pm	MakeMaker test utilities
@@ -4318,7 +4316,7 @@ t/pod/special_seqs.xr		Expected results for special_seqs.t
 t/pod/testcmp.pl		Module to compare output against expected results
 t/pod/testp2pt.pl		Module to test Pod::PlainText for a given file
 t/pod/testpchk.pl		Module to test Pod::Checker for a given file
-t/pod/testpods/lib/Pod/Stuff.pm			Sample data for find.t
+t/pod/testpods/lib/Pod/Stuff.pm		Sample data for t/pod/find.t
 t/pod/twice.t			Test Pod::Parser
 t/pod/usage2.pod		Test POD for pod2usage tests
 t/pod/usage.pod			Test POD for pod2usage tests
