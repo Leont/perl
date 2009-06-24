@@ -476,7 +476,7 @@ package Maintainers;
     'CPANPLUS::Dist::Build' =>
 	{
 	'MAINTAINER'	=> 'bingos',
-	'DISTRIBUTION'	=> 'BINGOS/CPANPLUS-Dist-Build-0.34.tar.gz',
+	'DISTRIBUTION'	=> 'BINGOS/CPANPLUS-Dist-Build-0.35_01.tar.gz',
 	'FILES'		=> q[lib/CPANPLUS/Dist/Build.pm
 			     lib/CPANPLUS/Dist/Build
 			    ],
@@ -492,7 +492,7 @@ package Maintainers;
     'Data::Dumper' =>
 	{
 	'MAINTAINER'	=> 'p5p', # Not gsar. Not ilyam
-	'DISTRIBUTION'	=> 'ILYAM/Data-Dumper-2.121.tar.gz',
+	'DISTRIBUTION'	=> 'SMUELLER/Data-Dumper-2.124.tar.gz',
 	'FILES'		=> q[ext/Data-Dumper],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'blead',
@@ -516,7 +516,7 @@ package Maintainers;
     'Devel::PPPort' =>
 	{
 	'MAINTAINER'	=> 'mhx',
-	'DISTRIBUTION'	=> 'MHX/Devel-PPPort-3.18.tar.gz',
+	'DISTRIBUTION'	=> 'MHX/Devel-PPPort-3.19.tar.gz',
 	'FILES'		=> q[ext/Devel-PPPort],
 	'EXCLUDED'	=> [ qw{PPPort.pm} ], # we use PPPort_pm.PL instead
 	'CPAN'		=> 1,
@@ -915,7 +915,7 @@ package Maintainers;
     'IPC::Cmd' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/IPC-Cmd-0.44.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/IPC-Cmd-0.46.tar.gz',
 	'FILES'		=> q[lib/IPC/Cmd lib/IPC/Cmd.pm],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'cpan',
@@ -1857,7 +1857,7 @@ package Maintainers;
     'threads::shared' =>
 	{
 	'MAINTAINER'	=> 'jdhedden',
-	'DISTRIBUTION'	=> 'JDHEDDEN/threads-shared-1.28.tar.gz',
+	'DISTRIBUTION'	=> 'JDHEDDEN/threads-shared-1.29.tar.gz',
 	'FILES'		=> q[ext/threads-shared],
 	'EXCLUDED'	=> [ qw(examples/class.pl
 				shared.h
