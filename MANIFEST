@@ -1815,10 +1815,14 @@ lib/autouse.t			See if autouse works
 lib/base/Changes		base.pm changelog
 lib/base.pm			Establish IS-A relationship at compile time
 lib/base/t/base.t		See if base works
+lib/base/t/compile-time.t	See if base works
 lib/base/t/fields-base.t	See if fields work
+lib/base/t/fields-5.6.0.t	See if fields work
+lib/base/t/fields-5.8.0.t	See if fields work
 lib/base/t/fields.t		See if fields work
 lib/base/t/isa.t		See if base's behaviour doesn't change
 lib/base/t/lib/Dummy.pm		Test module for base.pm
+lib/base/t/lib/HasSigDie.pm	Module for testing base.pm
 lib/base/t/sigdie.t		See if base works with SIGDIE
 lib/base/t/version.t		See if base works with versions
 lib/base/t/warnings.t		See if base works with warnings
@@ -2176,8 +2180,11 @@ lib/ExtUtils/NOTES		Notes about MakeMaker internals
 lib/ExtUtils/Packlist.pm	Manipulates .packlist files
 lib/ExtUtils/ParseXS.pm		converts Perl XS code into C code
 lib/ExtUtils/ParseXS/t/basic.t	See if ExtUtils::ParseXS works
+lib/ExtUtils/ParseXS/t/usage.t	ExtUtils::ParseXS tests
 lib/ExtUtils/ParseXS/t/XSTest.pm	Test file for ExtUtils::ParseXS tests
 lib/ExtUtils/ParseXS/t/XSTest.xs	Test file for ExtUtils::ParseXS tests
+lib/ExtUtils/ParseXS/t/XSUsage.pm	ExtUtils::ParseXS tests
+lib/ExtUtils/ParseXS/t/XSUsage.xs	ExtUtils::ParseXS tests
 lib/ExtUtils/PATCHING		Suggestions for patching MakeMaker
 lib/ExtUtils/README		MakeMaker README
 lib/ExtUtils/t/00compile.t	See if MakeMaker modules compile
@@ -3635,6 +3642,7 @@ pod/perlmodinstall.pod		Perl modules: how to install from CPAN
 pod/perlmodlib.PL		Generate pod/perlmodlib.pod
 pod/perlmod.pod			Perl modules: how they work
 pod/perlmodstyle.pod		Perl modules: how to write modules with style
+pod/perlmroapi.pod		Perl method resolution plugin interface
 pod/perlnewmod.pod		Perl modules: preparing a new module for distribution
 pod/perlnumber.pod		Perl number semantics
 pod/perlobj.pod			Perl objects
@@ -3889,7 +3897,7 @@ t/comp/parser.t			See if the parser works in edge cases
 t/comp/proto.t			See if function prototypes work
 t/comp/redef.t			See if we get correct warnings on redefined subs
 t/comp/require.t		See if require works
-t/comp/retainedlines.t		See if the debugger can retains eval's lines
+t/comp/retainedlines.t		See if the debugger can retain eval's lines
 t/comp/script.t			See if script invocation works
 t/comp/term.t			See if more terms work
 t/comp/uproto.t			See if the _ prototype works
@@ -3916,7 +3924,7 @@ t/io/openpid.t			See if open works for subprocesses
 t/io/open.t			See if open works
 t/io/perlio_fail.t		See if bad layers fail
 t/io/perlio_leaks.t		See if PerlIO layers are leaking
-t/io/perlio_open.t		See if PerlIO certain special opens work
+t/io/perlio_open.t		See if certain special forms of open work
 t/io/perlio.t			See if PerlIO works
 t/io/pipe.t			See if secure pipes work
 t/io/print.t			See if print commands work
@@ -3984,7 +3992,6 @@ t/lib/Filter/Simple/ImportTest.pm	Helper file for Filter::Simple tests
 t/lib/filter-util.pl		See if Filter::Util::Call works
 t/lib/h2ph.h			Test header file for h2ph
 t/lib/h2ph.pht			Generated output from h2ph.h by h2ph, for comparison
-t/lib/HasSigDie.pm		Module for testing base.pm
 t/lib/locale/latin1		Part of locale.t in Latin 1
 t/lib/locale/utf8		Part of locale.t in UTF8
 t/lib/MakeMaker/Test/NoXS.pm		MakeMaker test utilities
@@ -4223,7 +4230,7 @@ t/op/reg_mesg.t			See if one can get regular expression errors
 t/op/reg_namedcapture.t		Make sure glob assignment doesn't break named capture
 t/op/reg_nc_tie.t		Test the tied methods of Tie::Hash::NamedCapture
 t/op/reg_pmod.t			See if regexp /p modifier works as expected
-t/op/reg_posixcc.t		See if posix characterclasses behave consistantly
+t/op/reg_posixcc.t		See if posix character classes behave consistantly
 t/op/reg_unsafe.t		Check for unsafe match vars
 t/op/repeat.t			See if x operator works
 t/op/reset.t			See if reset operator works

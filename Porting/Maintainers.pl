@@ -170,7 +170,7 @@ package Maintainers;
     'Archive::Extract' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/Archive-Extract-0.32.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/Archive-Extract-0.34.tar.gz',
 	'FILES'		=> q[lib/Archive/Extract.pm lib/Archive/Extract],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'cpan',
@@ -436,7 +436,7 @@ package Maintainers;
     'CPANPLUS' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/CPANPLUS-0.87_02.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/CPANPLUS-0.87_03.tar.gz',
 	'FILES'		=> q[lib/CPANPLUS.pm
 			     lib/CPANPLUS/Backend
 			     lib/CPANPLUS/Backend.pm
@@ -476,7 +476,7 @@ package Maintainers;
     'CPANPLUS::Dist::Build' =>
 	{
 	'MAINTAINER'	=> 'bingos',
-	'DISTRIBUTION'	=> 'BINGOS/CPANPLUS-Dist-Build-0.34.tar.gz',
+	'DISTRIBUTION'	=> 'BINGOS/CPANPLUS-Dist-Build-0.35_02.tar.gz',
 	'FILES'		=> q[lib/CPANPLUS/Dist/Build.pm
 			     lib/CPANPLUS/Dist/Build
 			    ],
@@ -492,7 +492,7 @@ package Maintainers;
     'Data::Dumper' =>
 	{
 	'MAINTAINER'	=> 'p5p', # Not gsar. Not ilyam
-	'DISTRIBUTION'	=> 'ILYAM/Data-Dumper-2.121.tar.gz',
+	'DISTRIBUTION'	=> 'SMUELLER/Data-Dumper-2.124.tar.gz',
 	'FILES'		=> q[ext/Data-Dumper],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'blead',
@@ -516,7 +516,7 @@ package Maintainers;
     'Devel::PPPort' =>
 	{
 	'MAINTAINER'	=> 'mhx',
-	'DISTRIBUTION'	=> 'MHX/Devel-PPPort-3.18.tar.gz',
+	'DISTRIBUTION'	=> 'MHX/Devel-PPPort-3.19.tar.gz',
 	'FILES'		=> q[ext/Devel-PPPort],
 	'EXCLUDED'	=> [ qw{PPPort.pm} ], # we use PPPort_pm.PL instead
 	'CPAN'		=> 1,
@@ -600,7 +600,7 @@ package Maintainers;
     'ExtUtils::CBuilder' =>
 	{
 	'MAINTAINER'	=> 'kwilliams',
-	'DISTRIBUTION'	=> 'KWILLIAMS/ExtUtils-CBuilder-0.24.tar.gz',
+	'DISTRIBUTION'	=> 'DAGOLDEN/ExtUtils-CBuilder-0.25.tar.gz',
 	'FILES'		=> q[lib/ExtUtils/CBuilder.pm lib/ExtUtils/CBuilder],
 	'EXCLUDED'	=> [ qw{bleadcheck.pl}, ],
 	'CPAN'		=> 1,
@@ -723,13 +723,13 @@ package Maintainers;
     'ExtUtils::ParseXS' =>
 	{
 	'MAINTAINER'	=> 'kwilliams',
-	'DISTRIBUTION'	=> 'KWILLIAMS/ExtUtils-ParseXS-2.19.tar.gz',
+	'DISTRIBUTION'	=> 'DAGOLDEN/ExtUtils-ParseXS-2.19_03.tar.gz',
 	'FILES'		=> q[lib/ExtUtils/ParseXS.pm
 			     lib/ExtUtils/ParseXS
 			     lib/ExtUtils/xsubpp
 			    ],
 	'CPAN'		=> 1,
-	'UPSTREAM'	=> undef,
+	'UPSTREAM'	=> 'cpan',
 	},
 
     'faq' =>
@@ -743,7 +743,7 @@ package Maintainers;
     'File::Fetch' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/File-Fetch-0.18.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/File-Fetch-0.20.tar.gz',
 	'FILES'		=> q[lib/File/Fetch.pm lib/File/Fetch],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'cpan',
@@ -752,7 +752,7 @@ package Maintainers;
     'File::Path' =>
 	{
 	'MAINTAINER'	=> 'dland',
-	'DISTRIBUTION'	=> 'DLAND/File-Path-2.07.tar.gz',
+	'DISTRIBUTION'	=> 'DLAND/File-Path-2.07_03.tar.gz',
 	'FILES'		=> q[lib/File/Path.pm lib/File/Path.t],
 	'EXCLUDED'	=> [ qw{eg/setup-extra-tests
 				t/pod.t
@@ -915,7 +915,7 @@ package Maintainers;
     'IPC::Cmd' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/IPC-Cmd-0.44.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/IPC-Cmd-0.46.tar.gz',
 	'FILES'		=> q[lib/IPC/Cmd lib/IPC/Cmd.pm],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'cpan',
@@ -1857,7 +1857,7 @@ package Maintainers;
     'threads::shared' =>
 	{
 	'MAINTAINER'	=> 'jdhedden',
-	'DISTRIBUTION'	=> 'JDHEDDEN/threads-shared-1.28.tar.gz',
+	'DISTRIBUTION'	=> 'JDHEDDEN/threads-shared-1.29.tar.gz',
 	'FILES'		=> q[ext/threads-shared],
 	'EXCLUDED'	=> [ qw(examples/class.pl
 				shared.h
@@ -1914,7 +1914,7 @@ package Maintainers;
     'Time::Piece' =>
 	{
 	'MAINTAINER'	=> 'msergeant',
-	'DISTRIBUTION'	=> 'MSERGEANT/Time-Piece-1.14.tar.gz',
+	'DISTRIBUTION'	=> 'MSERGEANT/Time-Piece-1.15.tar.gz',
 	'FILES'		=> q[ext/Time-Piece],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> undef,
