@@ -645,6 +645,7 @@ Apa	|OP*	|newANONLIST	|NULLOK OP* o
 Apa	|OP*	|newANONHASH	|NULLOK OP* o
 Ap	|OP*	|newANONSUB	|I32 floor|NULLOK OP* proto|NULLOK OP* block
 Apa	|OP*	|newASSIGNOP	|I32 flags|NULLOK OP* left|I32 optype|NULLOK OP* right
+Apa	|OP*	|newBINDOP	|I32 flags|NULLOK OP* left|NULLOK OP* right
 Apa	|OP*	|newCONDOP	|I32 flags|NN OP* first|NULLOK OP* trueop|NULLOK OP* falseop
 Apd	|CV*	|newCONSTSUB	|NULLOK HV* stash|NULLOK const char* name|NULLOK SV* sv
 #ifdef PERL_MAD
@@ -1381,6 +1382,7 @@ s	|void	|unwind_handler_stack|NN const void *p
 
 #if defined(PERL_IN_OP_C) || defined(PERL_DECL_PROT)
 : These are all indirectly referenced by globals.c. This is somewhat annoying.
+pR	|OP*	|ck_abind	|NN OP *o
 pR	|OP*	|ck_anoncode	|NN OP *o
 pR	|OP*	|ck_bitop	|NN OP *o
 pR	|OP*	|ck_concat	|NN OP *o
@@ -1411,6 +1413,7 @@ pR	|OP*	|ck_return	|NN OP *o
 pR	|OP*	|ck_rfun	|NN OP *o
 pR	|OP*	|ck_rvconst	|NN OP *o
 pR	|OP*	|ck_sassign	|NN OP *o
+pR	|OP*	|ck_sbind	|NN OP *o
 pR	|OP*	|ck_select	|NN OP *o
 pR	|OP*	|ck_shift	|NN OP *o
 pR	|OP*	|ck_sort	|NN OP *o
@@ -1551,6 +1554,7 @@ s	|OP*	|do_smartmatch	|NULLOK HV* seen_this|NULLOK HV* seen_other
 #endif
 
 #if defined(PERL_IN_PP_HOT_C) || defined(PERL_DECL_PROT)
+s       |void   |padsv_mod      |PADOFFSET targ|U8 pflags
 s	|void	|do_oddball	|NN HV *hash|NN SV **relem|NN SV **firstrelem
 sR	|SV*	|method_common	|NN SV* meth|NULLOK U32* hashp
 #endif

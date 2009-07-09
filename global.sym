@@ -296,6 +296,7 @@ Perl_newANONLIST
 Perl_newANONHASH
 Perl_newANONSUB
 Perl_newASSIGNOP
+Perl_newBINDOP
 Perl_newCONDOP
 Perl_newCONSTSUB
 Perl_newFORM

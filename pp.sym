@@ -5,6 +5,7 @@
 #   will be lost!
 #
 
+Perl_ck_abind
 Perl_ck_anoncode
 Perl_ck_bitop
 Perl_ck_chdir
@@ -37,6 +38,7 @@ Perl_ck_return
 Perl_ck_rfun
 Perl_ck_rvconst
 Perl_ck_sassign
+Perl_ck_sbind
 Perl_ck_select
 Perl_ck_shift
 Perl_ck_smartmatch
@@ -86,6 +88,8 @@ Perl_pp_substcont
 Perl_pp_trans
 Perl_pp_sassign
 Perl_pp_aassign
+Perl_pp_sbind
+Perl_pp_abind
 Perl_pp_chop
 Perl_pp_schop
 Perl_pp_chomp

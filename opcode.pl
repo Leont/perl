@@ -677,6 +677,9 @@ trans		transliteration (tr///)	ck_match	is"	S
 sassign		scalar assignment	ck_sassign	s0
 aassign		list assignment		ck_null		t2	L L
 
+sbind		scalar bind		ck_sbind	s0
+abind		list bind		ck_abind	t2	L L
+
 chop		chop			ck_spair	mts%	L
 schop		scalar chop		ck_null		stu%	S?
 chomp		chomp			ck_spair	mTs%	L

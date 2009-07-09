@@ -1983,6 +1983,10 @@ PERL_CALLCONV OP*	Perl_newASSIGNOP(pTHX_ I32 flags, OP* left, I32 optype, OP* ri
 			__attribute__malloc__
 			__attribute__warn_unused_result__;
 
+PERL_CALLCONV OP*	Perl_newBINDOP(pTHX_ I32 flags, OP* left, OP* right)
+			__attribute__malloc__
+			__attribute__warn_unused_result__;
+
 PERL_CALLCONV OP*	Perl_newCONDOP(pTHX_ I32 flags, OP* first, OP* trueop, OP* falseop)
 			__attribute__malloc__
 			__attribute__warn_unused_result__
@@ -4339,6 +4343,12 @@ STATIC void	S_unwind_handler_stack(pTHX_ const void *p)
 #endif
 
 #if defined(PERL_IN_OP_C) || defined(PERL_DECL_PROT)
+PERL_CALLCONV OP*	Perl_ck_abind(pTHX_ OP *o)
+			__attribute__warn_unused_result__
+			__attribute__nonnull__(pTHX_1);
+#define PERL_ARGS_ASSERT_CK_ABIND	\
+	assert(o)
+
 PERL_CALLCONV OP*	Perl_ck_anoncode(pTHX_ OP *o)
 			__attribute__warn_unused_result__
 			__attribute__nonnull__(pTHX_1);
@@ -4517,6 +4527,12 @@ PERL_CALLCONV OP*	Perl_ck_sassign(pTHX_ OP *o)
 			__attribute__warn_unused_result__
 			__attribute__nonnull__(pTHX_1);
 #define PERL_ARGS_ASSERT_CK_SASSIGN	\
+	assert(o)
+
+PERL_CALLCONV OP*	Perl_ck_sbind(pTHX_ OP *o)
+			__attribute__warn_unused_result__
+			__attribute__nonnull__(pTHX_1);
+#define PERL_ARGS_ASSERT_CK_SBIND	\
 	assert(o)
 
 PERL_CALLCONV OP*	Perl_ck_select(pTHX_ OP *o)
@@ -5025,6 +5041,7 @@ STATIC OP*	S_do_smartmatch(pTHX_ HV* seen_this, HV* seen_other);
 #endif
 
 #if defined(PERL_IN_PP_HOT_C) || defined(PERL_DECL_PROT)
+STATIC void	S_padsv_mod(pTHX_ PADOFFSET targ, U8 pflags);
 STATIC void	S_do_oddball(pTHX_ HV *hash, SV **relem, SV **firstrelem)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_2)

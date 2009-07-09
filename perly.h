@@ -92,23 +92,24 @@
      OROP = 307,
      ANDOP = 308,
      NOTOP = 309,
-     ASSIGNOP = 310,
-     DORDOR = 311,
-     OROR = 312,
-     ANDAND = 313,
-     BITOROP = 314,
-     BITANDOP = 315,
-     SHIFTOP = 316,
-     MATCHOP = 317,
-     REFGEN = 318,
-     UMINUS = 319,
-     POWOP = 320,
-     POSTDEC = 321,
-     POSTINC = 322,
-     PREDEC = 323,
-     PREINC = 324,
-     ARROW = 325,
-     PEG = 326
+     BINDOP = 310,
+     ASSIGNOP = 311,
+     DORDOR = 312,
+     OROR = 313,
+     ANDAND = 314,
+     BITOROP = 315,
+     BITANDOP = 316,
+     SHIFTOP = 317,
+     MATCHOP = 318,
+     REFGEN = 319,
+     UMINUS = 320,
+     POWOP = 321,
+     POSTDEC = 322,
+     POSTINC = 323,
+     PREDEC = 324,
+     PREINC = 325,
+     ARROW = 326,
+     PEG = 327
    };
 #endif
 
@@ -165,23 +166,24 @@
 #define OROP 307
 #define ANDOP 308
 #define NOTOP 309
-#define ASSIGNOP 310
-#define DORDOR 311
-#define OROR 312
-#define ANDAND 313
-#define BITOROP 314
-#define BITANDOP 315
-#define SHIFTOP 316
-#define MATCHOP 317
-#define REFGEN 318
-#define UMINUS 319
-#define POWOP 320
-#define POSTDEC 321
-#define POSTINC 322
-#define PREDEC 323
-#define PREINC 324
-#define ARROW 325
-#define PEG 326
+#define BINDOP 310
+#define ASSIGNOP 311
+#define DORDOR 312
+#define OROR 313
+#define ANDAND 314
+#define BITOROP 315
+#define BITANDOP 316
+#define SHIFTOP 317
+#define MATCHOP 318
+#define REFGEN 319
+#define UMINUS 320
+#define POWOP 321
+#define POSTDEC 322
+#define POSTINC 323
+#define PREDEC 324
+#define PREINC 325
+#define ARROW 326
+#define PEG 327
 
 
 

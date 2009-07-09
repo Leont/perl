@@ -71,6 +71,8 @@ EXTCONST char* const PL_op_name[] = {
 	"trans",
 	"sassign",
 	"aassign",
+	"sbind",
+	"abind",
 	"chop",
 	"schop",
 	"chomp",
@@ -443,6 +445,8 @@ EXTCONST char* const PL_op_desc[] = {
 	"transliteration (tr///)",
 	"scalar assignment",
 	"list assignment",
+	"scalar bind",
+	"list bind",
 	"chop",
 	"scalar chop",
 	"chomp",
@@ -829,6 +833,8 @@ EXT Perl_ppaddr_t PL_ppaddr[] /* or perlvars.h */
 	MEMBER_TO_FPTR(Perl_pp_trans),
 	MEMBER_TO_FPTR(Perl_pp_sassign),
 	MEMBER_TO_FPTR(Perl_pp_aassign),
+	MEMBER_TO_FPTR(Perl_pp_sbind),
+	MEMBER_TO_FPTR(Perl_pp_abind),
 	MEMBER_TO_FPTR(Perl_pp_chop),
 	MEMBER_TO_FPTR(Perl_pp_schop),
 	MEMBER_TO_FPTR(Perl_pp_chomp),
@@ -1212,6 +1218,8 @@ EXT Perl_check_t PL_check[] /* or perlvars.h */
 	MEMBER_TO_FPTR(Perl_ck_match),	/* trans */
 	MEMBER_TO_FPTR(Perl_ck_sassign),	/* sassign */
 	MEMBER_TO_FPTR(Perl_ck_null),	/* aassign */
+	MEMBER_TO_FPTR(Perl_ck_sbind),	/* sbind */
+	MEMBER_TO_FPTR(Perl_ck_abind),	/* abind */
 	MEMBER_TO_FPTR(Perl_ck_spair),	/* chop */
 	MEMBER_TO_FPTR(Perl_ck_null),	/* schop */
 	MEMBER_TO_FPTR(Perl_ck_spair),	/* chomp */
@@ -1589,6 +1597,8 @@ EXTCONST U32 PL_opargs[] = {
 	0x00003014,	/* trans */
 	0x00000004,	/* sassign */
 	0x00044408,	/* aassign */
+	0x00000004,	/* sbind */
+	0x00044408,	/* abind */
 	0x0000560d,	/* chop */
 	0x0001368c,	/* schop */
 	0x0000570d,	/* chomp */

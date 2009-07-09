@@ -544,6 +544,7 @@
 #define newANONHASH		Perl_newANONHASH
 #define newANONSUB		Perl_newANONSUB
 #define newASSIGNOP		Perl_newASSIGNOP
+#define newBINDOP		Perl_newBINDOP
 #define newCONDOP		Perl_newCONDOP
 #define newCONSTSUB		Perl_newCONSTSUB
 #ifdef PERL_MAD
@@ -1203,6 +1204,7 @@
 #endif
 #if defined(PERL_IN_OP_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
+#define ck_abind		Perl_ck_abind
 #define ck_anoncode		Perl_ck_anoncode
 #define ck_bitop		Perl_ck_bitop
 #define ck_concat		Perl_ck_concat
@@ -1233,6 +1235,7 @@
 #define ck_rfun			Perl_ck_rfun
 #define ck_rvconst		Perl_ck_rvconst
 #define ck_sassign		Perl_ck_sassign
+#define ck_sbind		Perl_ck_sbind
 #define ck_select		Perl_ck_select
 #define ck_shift		Perl_ck_shift
 #define ck_sort			Perl_ck_sort
@@ -1368,6 +1371,7 @@
 #endif
 #if defined(PERL_IN_PP_HOT_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
+#define padsv_mod		S_padsv_mod
 #define do_oddball		S_do_oddball
 #define method_common		S_method_common
 #endif
@@ -1969,6 +1973,7 @@
 #ifdef PERL_CORE
 #define boot_core_mro		Perl_boot_core_mro
 #endif
+#define ck_abind		Perl_ck_abind
 #define ck_anoncode		Perl_ck_anoncode
 #define ck_bitop		Perl_ck_bitop
 #define ck_chdir		Perl_ck_chdir
@@ -2001,6 +2006,7 @@
 #define ck_rfun			Perl_ck_rfun
 #define ck_rvconst		Perl_ck_rvconst
 #define ck_sassign		Perl_ck_sassign
+#define ck_sbind		Perl_ck_sbind
 #define ck_select		Perl_ck_select
 #define ck_shift		Perl_ck_shift
 #define ck_smartmatch		Perl_ck_smartmatch
@@ -2013,6 +2019,7 @@
 #define ck_trunc		Perl_ck_trunc
 #define ck_unpack		Perl_ck_unpack
 #define pp_aassign		Perl_pp_aassign
+#define pp_abind		Perl_pp_abind
 #define pp_abs			Perl_pp_abs
 #define pp_accept		Perl_pp_accept
 #define pp_add			Perl_pp_add
@@ -2286,6 +2293,7 @@
 #define pp_rv2sv		Perl_pp_rv2sv
 #define pp_sassign		Perl_pp_sassign
 #define pp_say			Perl_pp_say
+#define pp_sbind		Perl_pp_sbind
 #define pp_scalar		Perl_pp_scalar
 #define pp_schomp		Perl_pp_schomp
 #define pp_schop		Perl_pp_schop
@@ -2884,6 +2892,7 @@
 #define newANONHASH(a)		Perl_newANONHASH(aTHX_ a)
 #define newANONSUB(a,b,c)	Perl_newANONSUB(aTHX_ a,b,c)
 #define newASSIGNOP(a,b,c,d)	Perl_newASSIGNOP(aTHX_ a,b,c,d)
+#define newBINDOP(a,b,c)	Perl_newBINDOP(aTHX_ a,b,c)
 #define newCONDOP(a,b,c,d)	Perl_newCONDOP(aTHX_ a,b,c,d)
 #define newCONSTSUB(a,b,c)	Perl_newCONSTSUB(aTHX_ a,b,c)
 #ifdef PERL_MAD
@@ -3540,6 +3549,7 @@
 #endif
 #if defined(PERL_IN_OP_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
+#define ck_abind(a)		Perl_ck_abind(aTHX_ a)
 #define ck_anoncode(a)		Perl_ck_anoncode(aTHX_ a)
 #define ck_bitop(a)		Perl_ck_bitop(aTHX_ a)
 #define ck_concat(a)		Perl_ck_concat(aTHX_ a)
@@ -3570,6 +3580,7 @@
 #define ck_rfun(a)		Perl_ck_rfun(aTHX_ a)
 #define ck_rvconst(a)		Perl_ck_rvconst(aTHX_ a)
 #define ck_sassign(a)		Perl_ck_sassign(aTHX_ a)
+#define ck_sbind(a)		Perl_ck_sbind(aTHX_ a)
 #define ck_select(a)		Perl_ck_select(aTHX_ a)
 #define ck_shift(a)		Perl_ck_shift(aTHX_ a)
 #define ck_sort(a)		Perl_ck_sort(aTHX_ a)
@@ -3715,6 +3726,7 @@
 #endif
 #if defined(PERL_IN_PP_HOT_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
+#define padsv_mod(a,b)		S_padsv_mod(aTHX_ a,b)
 #define do_oddball(a,b,c)	S_do_oddball(aTHX_ a,b,c)
 #define method_common(a,b)	S_method_common(aTHX_ a,b)
 #endif
@@ -4327,6 +4339,7 @@
 #endif
 #ifdef PERL_CORE
 #endif
+#define ck_abind(a)		Perl_ck_abind(aTHX_ a)
 #define ck_anoncode(a)		Perl_ck_anoncode(aTHX_ a)
 #define ck_bitop(a)		Perl_ck_bitop(aTHX_ a)
 #define ck_chdir(a)		Perl_ck_chdir(aTHX_ a)
@@ -4359,6 +4372,7 @@
 #define ck_rfun(a)		Perl_ck_rfun(aTHX_ a)
 #define ck_rvconst(a)		Perl_ck_rvconst(aTHX_ a)
 #define ck_sassign(a)		Perl_ck_sassign(aTHX_ a)
+#define ck_sbind(a)		Perl_ck_sbind(aTHX_ a)
 #define ck_select(a)		Perl_ck_select(aTHX_ a)
 #define ck_shift(a)		Perl_ck_shift(aTHX_ a)
 #define ck_smartmatch(a)	Perl_ck_smartmatch(aTHX_ a)
@@ -4371,6 +4385,7 @@
 #define ck_trunc(a)		Perl_ck_trunc(aTHX_ a)
 #define ck_unpack(a)		Perl_ck_unpack(aTHX_ a)
 #define pp_aassign()		Perl_pp_aassign(aTHX)
+#define pp_abind()		Perl_pp_abind(aTHX)
 #define pp_abs()		Perl_pp_abs(aTHX)
 #define pp_accept()		Perl_pp_accept(aTHX)
 #define pp_add()		Perl_pp_add(aTHX)
@@ -4644,6 +4659,7 @@
 #define pp_rv2sv()		Perl_pp_rv2sv(aTHX)
 #define pp_sassign()		Perl_pp_sassign(aTHX)
 #define pp_say()		Perl_pp_say(aTHX)
+#define pp_sbind()		Perl_pp_sbind(aTHX)
 #define pp_scalar()		Perl_pp_scalar(aTHX)
 #define pp_schomp()		Perl_pp_schomp(aTHX)
 #define pp_schop()		Perl_pp_schop(aTHX)
