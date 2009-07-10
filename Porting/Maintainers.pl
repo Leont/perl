@@ -205,9 +205,15 @@ package Maintainers;
     'autodie' =>
 	{
 	'MAINTAINER'	=> 'pjf',
-	'DISTRIBUTION'	=> 'PJF/autodie-2.04.tar.gz',
+	'DISTRIBUTION'	=> 'PJF/autodie-2.06.tar.gz',
 	'FILES' 	=> q[lib/Fatal.pm lib/autodie.pm lib/autodie],
 	'EXCLUDED'	=> [ qr{^inc/Module/},
+
+                             # All these tests depend upon external
+                             # modules that don't exist when we're
+                             # building the core.  Hence, they can
+                             # never run, and should not be merged.
+
 			     qw(
 				t/boilerplate.t
 				t/critic.t
@@ -443,7 +449,7 @@ package Maintainers;
     'CPANPLUS' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/CPANPLUS-0.87_03.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/CPANPLUS-0.88.tar.gz',
 	'FILES'		=> q[lib/CPANPLUS.pm
 			     lib/CPANPLUS/Backend
 			     lib/CPANPLUS/Backend.pm
@@ -571,7 +577,7 @@ package Maintainers;
     'Encode' =>
 	{
 	'MAINTAINER'	=> 'dankogai',
-	'DISTRIBUTION'	=> 'DANKOGAI/Encode-2.33.tar.gz',
+	'DISTRIBUTION'	=> 'DANKOGAI/Encode-2.34.tar.gz',
 	'FILES'		=> q[ext/Encode],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> undef,
@@ -608,7 +614,7 @@ package Maintainers;
     'ExtUtils::CBuilder' =>
 	{
 	'MAINTAINER'	=> 'kwilliams',
-	'DISTRIBUTION'	=> 'DAGOLDEN/ExtUtils-CBuilder-0.2601.tar.gz',
+	'DISTRIBUTION'	=> 'DAGOLDEN/ExtUtils-CBuilder-0.2602.tar.gz',
 	'FILES'		=> q[lib/ExtUtils/CBuilder.pm lib/ExtUtils/CBuilder],
 	'EXCLUDED'	=> [ qw{devtools} ],
 	'CPAN'		=> 1,
@@ -688,7 +694,7 @@ package Maintainers;
     'ExtUtils::MakeMaker' =>
 	{
 	'MAINTAINER'	=> 'mschwern',
-	'DISTRIBUTION'	=> 'MSCHWERN/ExtUtils-MakeMaker-6.53_02.tar.gz',
+	'DISTRIBUTION'	=> 'MSCHWERN/ExtUtils-MakeMaker-6.54.tar.gz',
 			    # note that t/lib/TieOut.pm is included in
 			    # more than one distro
 	'FILES'		=> q[lib/ExtUtils/{Liblist,MakeMaker,Mkbootstrap,Mksymlists,MM*,MY,testlib}.pm
@@ -731,7 +737,7 @@ package Maintainers;
     'ExtUtils::ParseXS' =>
 	{
 	'MAINTAINER'	=> 'kwilliams',
-	'DISTRIBUTION'	=> 'DAGOLDEN/ExtUtils-ParseXS-2.20.tar.gz',
+	'DISTRIBUTION'	=> 'DAGOLDEN/ExtUtils-ParseXS-2.20_01.tar.gz',
 	'FILES'		=> q[lib/ExtUtils/ParseXS.pm
 			     lib/ExtUtils/ParseXS
 			     lib/ExtUtils/xsubpp
@@ -1178,7 +1184,7 @@ package Maintainers;
     'Module::Build' =>
 	{
 	'MAINTAINER'	=> 'kwilliams',
-	'DISTRIBUTION'	=> 'DAGOLDEN/Module-Build-0.33_05.tar.gz',
+	'DISTRIBUTION'	=> 'DAGOLDEN/Module-Build-0.34.tar.gz',
 	'FILES'		=> q[lib/Module/Build lib/Module/Build.pm],
 	'EXCLUDED'	=> [ qw{ t/par.t t/signature.t scripts/bundle.pl}, ],
 	'CPAN'		=> 1,
@@ -1647,7 +1653,7 @@ package Maintainers;
     'Term::ANSIColor' =>
 	{
 	'MAINTAINER'	=> 'rra',
-	'DISTRIBUTION'	=> 'RRA/ANSIColor-2.00.tar.gz',
+	'DISTRIBUTION'	=> 'RRA/ANSIColor-2.01.tar.gz',
 	'FILES'		=> q{lib/Term/ANSIColor.pm lib/Term/ANSIColor},
 	'EXCLUDED'	=> [ qr{^tests/},
 			     qw(t/pod-spelling.t t/pod.t)
@@ -1713,40 +1719,26 @@ package Maintainers;
     'Test::Simple' =>
 	{
 	'MAINTAINER'	=> 'mschwern',
-	'DISTRIBUTION'	=> 'MSCHWERN/Test-Simple-0.86.tar.gz',
+	'DISTRIBUTION'	=> 'MSCHWERN/Test-Simple-0.92.tar.gz',
 	'FILES'		=> q[lib/Test/Simple.pm
 			     lib/Test/Simple
 			     lib/Test/Builder.pm
 			     lib/Test/Builder
 			     lib/Test/More.pm
 			     lib/Test/Tutorial.pod
-			     t/lib/Test/Simple
+			     t/lib/Test/
 			     t/lib/Dev/Null.pm
 			    ],
 	'EXCLUDED'	=> [
 			     # NB - TieOut.pm comes with more than one
 			     # distro. We use the MM one
-			     # XXX should all these actually be excluded
-			     # from blead ???? - DAPM
 			     qw{.perlcriticrc
 				.perltidyrc
 				t/pod.t
 				t/pod-coverage.t
-				t/versions.t
-				t/Builder/current_test.t
-				t/Builder/current_test_without_plan.t
-				t/Builder/done_testing.t
-				t/Builder/done_testing_double.t
-				t/Builder/done_testing_plan_mismatch.t
-				t/Builder/done_testing_with_no_plan.t
-				t/Builder/done_testing_with_number.t
-				t/Builder/done_testing_with_plan.t
-				t/Builder/fork_with_new_stdout.t
-				t/Builder/no_plan_at_all.t
 				t/Builder/reset_outputs.t
 
 				lib/Test/Builder/IO/Scalar.pm
-				t/lib/Test/Builder/NoOutput.pm
 
 				t/lib/TieOut.pm
 			       }
