@@ -384,9 +384,9 @@ and check for NULL.
 #if defined(__GNUC__) && !defined(PERL_GCC_BRACE_GROUPS_FORBIDDEN)
 #  define RXp_ATTR(prog,attr)				\
     (*({						\
-	const REGEXP *const _rx = RX_BOUND(prog);	\
-	assert(SvBTYPE(_rx) == SVt_REGEXP);		\
-	&SvBANY(_rx)->attr;				\
+	const REGEXP *const _rx = RX_SKIPVIEW(prog);	\
+	assert(SvVTYPE(_rx) == SVt_REGEXP);		\
+	&SvVANY(_rx)->attr;				\
     }))
 #else
 #  define RXp_ATTR(prog,attr)	(((struct regexp *)SvANY(prog))->attr)

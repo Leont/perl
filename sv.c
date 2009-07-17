@@ -213,8 +213,8 @@ Perl_offer_nice_chunk(pTHX_ void *const chunk, const U32 chunk_size)
 #  define POSION_SV_HEAD(sv)		PoisonNew(&SvANY(sv), 1, void *), \
 					PoisonNew(&SvREFCNT(sv), 1, U32)
 #else
-#  define SvARENA_CHAIN(sv)		SvBANY(sv)
-#  define SvARENA_CHAIN_SET(sv,val)	SvBANY(sv) = (void *)(val)
+#  define SvARENA_CHAIN(sv)		SvVANY(sv)
+#  define SvARENA_CHAIN_SET(sv,val)	SvVANY(sv) = (void *)(val)
 #  define POSION_SV_HEAD(sv)
 #endif
 
@@ -283,8 +283,8 @@ S_new_SV(pTHX_ const char *file, int line, const char *func)
 	uproot_SV(sv);
     else
 	sv = S_more_sv(aTHX);
-    SvBFLAGS(sv) = 0;
-    SvBANY(sv) = 0;
+    SvVFLAGS(sv) = 0;
+    SvVANY(sv) = 0;
     SvREFCNT(sv) = 1;
     sv->sv_debug_optype = PL_op ? PL_op->op_type : 0;
     sv->sv_debug_line = (U16) (PL_parser && PL_parser->copline != NOLINE
@@ -314,8 +314,8 @@ S_new_SV(pTHX_ const char *file, int line, const char *func)
 	    uproot_SV(p);				\
 	else						\
 	    (p) = S_more_sv(aTHX);			\
-	SvBFLAGS(p) = 0;				\
-	SvBANY(p) = 0;					\
+	SvVFLAGS(p) = 0;				\
+	SvVANY(p) = 0;					\
 	SvREFCNT(p) = 1;				\
 	MEM_LOG_NEW_SV(p, __FILE__, __LINE__, FUNCTION__);  \
     } STMT_END
@@ -392,7 +392,7 @@ S_sv_add_arena(pTHX_ char *const ptr, const U32 size, const U32 flags)
     PERL_ARGS_ASSERT_SV_ADD_ARENA;
 
     /* The first SV in an arena isn't an SV. */
-    SvBFLAGS(sva) = flags;			/* FAKE if not to be freed */
+    SvVFLAGS(sva) = flags;			/* FAKE if not to be freed */
     SvARENA_CHAIN_SET(sva, PL_sv_arenaroot);	/* ptr to next arena */
     SvREFCNT(sva) = size / sizeof(SV);		/* number of SV slots */
 
@@ -408,14 +408,14 @@ S_sv_add_arena(pTHX_ char *const ptr, const U32 size, const U32 flags)
 #endif
 	/* Must always set typemask because it's always checked in on cleanup
 	   when the arenas are walked looking for objects.  */
-	SvBFLAGS(sv) = SVTYPEMASK;
+	SvVFLAGS(sv) = SVTYPEMASK;
 	sv++;
     }
     SvARENA_CHAIN_SET(sv, 0);
 #ifdef DEBUGGING
     SvREFCNT(sv) = 0;
 #endif
-    SvBFLAGS(sv) = SVTYPEMASK;
+    SvVFLAGS(sv) = SVTYPEMASK;
 }
 
 /* visit(): call the named function for each non-free SV in the arenas
@@ -434,9 +434,9 @@ S_visit(pTHX_ SVFUNC_t f, const U32 flags, const U32 mask)
 	register const SV * const svend = &sva[SvREFCNT(sva)];
 	register SV* sv;
 	for (sv = sva + 1; sv < svend; ++sv) {
-	    if (SvBTYPE(sv) != SVTYPEMASK
-		&& !SvBIND(sv)
-		&& (SvBFLAGS(sv) & mask) == flags
+	    if (SvVTYPE(sv) != SVTYPEMASK
+		&& !SvVIEW(sv)
+		&& (SvVFLAGS(sv) & mask) == flags
 		&& SvREFCNT(sv))
 	    {
 		(FCALL)(aTHX_ sv);
@@ -926,14 +926,14 @@ struct xpv {
 
 #define copy_length(type, last_member) \
 	STRUCT_OFFSET(type, last_member) \
-	+ sizeof (((type*)SvBANY((const SV *)0))->last_member)
+	+ sizeof (((type*)SvVANY((const SV *)0))->last_member)
 
 static const struct body_details bodies_by_type[] = {
     { sizeof(HE), 0, 0, SVt_NULL,
       FALSE, NONV, NOARENA, FIT_ARENA(0, sizeof(HE)) },
 
     /* A bind is pretty much an RV, only it can't be upgraded. */
-    { 0, 0, 0, SVt_BIND, TRUE, NONV, NOARENA, 0 },
+    { 0, 0, 0, SVt_VIEW, TRUE, NONV, NOARENA, 0 },
 
     /* IVs are in the head, so the allocation size is 0.
        However, the slot is overloaded for PTEs.  */
@@ -3894,7 +3894,7 @@ Perl_sv_setsv_flags(pTHX_ SV *dstr, register SV* sstr, const I32 flags)
 	}
 	break;
 
-	/* case SVt_BIND: */
+	/* case SVt_VIEW: */
     case SVt_PVLV:
     case SVt_PVGV:
 	if (isGV_with_GP(sstr) && dtype <= SVt_PVGV) {
@@ -5684,7 +5684,7 @@ Perl_sv_clear(pTHX_ register SV *const sv)
 	    SvREFCNT_dec(SvSTASH(sv));
     }
     switch (type) {
-	/* case SVt_BIND: */
+	/* case SVt_VIEW: */
     case SVt_PVIO:
 	if (IoIFP(sv) &&
 	    IoIFP(sv) != PerlIO_stdin() &&
@@ -8404,7 +8404,7 @@ Perl_sv_reftype(pTHX_ const SV *const sv, const int ob)
 				    ? "GLOB" : "SCALAR");
 	case SVt_PVFM:		return "FORMAT";
 	case SVt_PVIO:		return "IO";
-	case SVt_BIND:		return "BIND";
+	case SVt_VIEW:		return "BIND";
 	case SVt_REGEXP:	return "REGEXP"; 
 	default:		return "UNKNOWN";
 	}
@@ -10863,7 +10863,7 @@ Perl_sv_dup(pTHX_ const SV *const sstr, CLONE_PARAMS *const param)
 	SvANY(dstr)	= new_XNV();
 	SvNV_set(dstr, SvNVX(sstr));
 	break;
-	/* case SVt_BIND: */
+	/* case SVt_VIEW: */
     default:
 	{
 	    /* These are all the types that need complex bodies allocating.  */
