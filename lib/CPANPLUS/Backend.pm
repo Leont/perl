@@ -14,7 +14,7 @@ use CPANPLUS::Backend::RV;
 use FileHandle;
 use File::Spec                  ();
 use File::Spec::Unix            ();
-use File::Basename		();
+use File::Basename              ();
 use Params::Check               qw[check];
 use Locale::Maketext::Simple    Class => 'CPANPLUS', Style => 'gettext';
 
@@ -496,6 +496,12 @@ sub parse_module {
     if (-d File::Spec->rel2abs($mod) ) {
         my $dir    = File::Spec->rel2abs($mod);
         my $parent = File::Spec->rel2abs( File::Spec->catdir( $dir, '..' ) );
+
+        ### fix paths on VMS
+        if (ON_VMS) {
+            $dir    = VMS::Filespec::unixify($dir);
+            $parent = VMS::Filespec::unixify($parent);
+        }
 
         my $dist   = $mod = File::Basename::basename($dir);
         $dist     .= '-0'      unless $dist =~ /\-[0-9._]+$/;
@@ -1097,7 +1103,9 @@ $name - Snapshot of your installation at $now
 
 $head SYNOPSIS
 
-perl -MCPANPLUS -e "install file://full/path/to/$name"
+To install the modules from this snapshot, run:
+
+  cpanp -i file://full/path/to/${name}.pm
 
 $head CONTENTS
 

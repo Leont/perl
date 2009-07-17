@@ -1058,7 +1058,7 @@ Perl_vmstrnenv(const char *lnm, char *eqv, unsigned long int idx,
 #if defined(PERL_IMPLICIT_CONTEXT)
             if (aTHX == NULL) {
                 fprintf(stderr,
-                    "%%PERL-W-VMS_INIT Can't read CRTL environ\n");
+                    "Can't read CRTL environ\n");
             } else
 #endif
                 Perl_warn(aTHX_ "Can't read CRTL environ\n");
@@ -1098,7 +1098,7 @@ Perl_vmstrnenv(const char *lnm, char *eqv, unsigned long int idx,
 #if defined(PERL_IMPLICIT_CONTEXT)
               if (aTHX == NULL) {
                   fprintf(stderr,
-                     "%Perl-VMS-Init, Value of CLI symbol \"%s\" too long",lnm);
+                     "Value of CLI symbol \"%s\" too long",lnm);
               } else
 #endif
 		if (ckWARN(WARN_MISC)) {
@@ -13570,7 +13570,7 @@ rmscopy_fromperl(pTHX_ CV *cv)
   if (SvTYPE(mysv) == SVt_PVGV) {
     if (!(io = GvIOp(mysv)) || !PerlIO_getname(IoIFP(io),inspec)) {
       set_errno(EINVAL); set_vaxc_errno(LIB$_INVARG);
-      ST(0) = &PL_sv_no;
+      ST(0) = sv_2mortal(newSViv(0));
       Safefree(inspec);
       XSRETURN(1);
     }
@@ -13579,7 +13579,7 @@ rmscopy_fromperl(pTHX_ CV *cv)
   else {
     if (mysv != ST(0) || !(inp = SvPV(mysv,n_a)) || !*inp) {
       set_errno(EINVAL); set_vaxc_errno(LIB$_INVARG);
-      ST(0) = &PL_sv_no;
+      ST(0) = sv_2mortal(newSViv(0));
       Safefree(inspec);
       XSRETURN(1);
     }
@@ -13589,7 +13589,7 @@ rmscopy_fromperl(pTHX_ CV *cv)
   if (SvTYPE(mysv) == SVt_PVGV) {
     if (!(io = GvIOp(mysv)) || !PerlIO_getname(IoIFP(io),outspec)) {
       set_errno(EINVAL); set_vaxc_errno(LIB$_INVARG);
-      ST(0) = &PL_sv_no;
+      ST(0) = sv_2mortal(newSViv(0));
       Safefree(inspec);
       Safefree(outspec);
       XSRETURN(1);
@@ -13599,7 +13599,7 @@ rmscopy_fromperl(pTHX_ CV *cv)
   else {
     if (mysv != ST(1) || !(outp = SvPV(mysv,n_a)) || !*outp) {
       set_errno(EINVAL); set_vaxc_errno(LIB$_INVARG);
-      ST(0) = &PL_sv_no;
+      ST(0) = sv_2mortal(newSViv(0));
       Safefree(inspec);
       Safefree(outspec);
       XSRETURN(1);
@@ -13607,7 +13607,7 @@ rmscopy_fromperl(pTHX_ CV *cv)
   }
   date_flag = (items == 3) ? SvIV(ST(2)) : 0;
 
-  ST(0) = boolSV(rmscopy(inp,outp,date_flag));
+  ST(0) = sv_2mortal(newSViv(rmscopy(inp,outp,date_flag)));
   Safefree(inspec);
   Safefree(outspec);
   XSRETURN(1);

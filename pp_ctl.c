@@ -3255,6 +3255,11 @@ PP(pp_require)
 	    Perl_load_module(aTHX_ 0, newSVpvs("feature"), NULL, importsv, NULL);
 	    LEAVE;
 	}
+	/* If a version >= 5.11.0 is requested, strictures are on by default! */
+	if (PL_compcv &&
+		vcmp(sv, sv_2mortal(upg_version(newSVnv(5.011000), FALSE))) >= 0) {
+	    PL_hints |= (HINT_STRICT_REFS | HINT_STRICT_SUBS | HINT_STRICT_VARS);
+	}
 
 	RETPUSHYES;
     }
@@ -3489,8 +3494,10 @@ PP(pp_require)
 		    tryname = SvPVX_const(namesv);
 		    tryrsfp = doopen_pm(tryname, SvCUR(namesv));
 		    if (tryrsfp) {
-			if (tryname[0] == '.' && tryname[1] == '/')
-			    tryname += 2;
+			if (tryname[0] == '.' && tryname[1] == '/') {
+			    ++tryname;
+			    while (*++tryname == '/');
+			}
 			break;
 		    }
 		    else if (errno == EMFILE)
@@ -4390,6 +4397,10 @@ S_do_smartmatch(pTHX_ HV *seen_this, HV *seen_other)
 	}
 	SP -= 2;
 	goto sm_any_scalar;
+    }
+    else if (!SvOK(d)) {
+	/* undef ~~ scalar ; we already know that the scalar is SvOK */
+	RETPUSHNO;
     }
     else
   sm_any_scalar:

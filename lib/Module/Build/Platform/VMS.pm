@@ -2,7 +2,7 @@ package Module::Build::Platform::VMS;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = '0.33_02';
+$VERSION = '0.34';
 $VERSION = eval $VERSION;
 use Module::Build::Base;
 
@@ -321,7 +321,7 @@ sub _detildefy {
         # Remove the tilde
         $spec =~ s/^~//;
 
-        # Remove any slash folloing the tilde if present.
+        # Remove any slash following the tilde if present.
         $spec =~ s#^/##;
 
         # break up the paths for the merge

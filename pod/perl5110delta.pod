@@ -20,8 +20,18 @@ in a smart match:
 
 =item flip-flop operators
 
-The C<..> and C<...> flip-flop operators are evaluated in boolean context,
-following their usual semantics; see L<perlop/"Range Operators">.
+The C<..> and C<...> flip-flop operators are now evaluated in boolean
+context, following their usual semantics; see L<perlop/"Range Operators">.
+
+Note that, as in perl 5.10.0, C<when (1..10)> will not work to test
+whether a given value is an integer between 1 and 10; you should use
+C<when ([1..10])> instead (note the array reference).
+
+However, contrary to 5.10.0, evaluating the flip-flop operators in boolean
+context ensures it can now be useful in a C<when()>, notably for
+implementing bistable conditions, like in:
+
+    when (/^=begin/ .. /^=end/) { ... }
 
 =item defined-or operator
 
@@ -32,7 +42,7 @@ to the regular or operator, as in C<when (expr1 || expr2)>.)
 
 =back
 
-The next paragraph details more changes brought to the semantics to
+The next section details more changes brought to the semantics to
 the smart match operator, that naturally also modify the behaviour
 of the switch statements where smart matching is implicitly used.
 
@@ -119,6 +129,19 @@ line match modifier C</s>. (If C<\N> is followed by an opening brace and
 by a letter, perl will still assume that a Unicode character name is
 coming, so compatibility is preserved.) (Rafael Garcia-Suarez)
 
+=head2 Implicit strictures
+
+Using the C<use VERSION> syntax with a version number greater or equal
+to 5.11.0 will also lexically enable strictures just like C<use strict>
+would do (in addition to enabling features.) So, the following:
+
+    use 5.11.0;
+
+will now imply:
+
+    use strict;
+    use feature ':5.11';
+
 =head2 Parallel tests
 
 The core distribution can now run its regression tests in parallel on
@@ -145,6 +168,17 @@ See L</"The C<overloading> pragma"> above.
 
 =back
 
+=head2 Selected Changes to Core Modules
+
+=over 4
+
+L<Carp> now includes all the necessary code to function. Previously, it
+used to be a lightweight placeholder that loaded the actual code from
+C<Carp::Heavy> on demand. C<Carp::Heavy> is now a simple, empty module
+kept for backwards compatibility for programs that used to pre-load it.
+
+=back
+
 =head1 Utility Changes
 
 =head1 Documentation
@@ -161,6 +195,13 @@ See L</"The C<overloading> pragma"> above.
 
 as documented, and as does C<-I> when specified on the command-line.
 (Renée Bäcker)
+
+=item C<kill> is now fatal when called on non-numeric process identifiers
+
+Previously, an 'undef' process identifier would be interpreted as a request to
+kill process "0", which would terminate the current process group on POSIX
+systems.  Since process identifiers are always integers, killing a non-numeric
+process is now fatal.
 
 =back
 

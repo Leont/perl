@@ -565,6 +565,7 @@ ext/Encode/t/mime-header.t	test script
 ext/Encode/t/mime-name.t	test script
 ext/Encode/t/Mod_EUCJP.pm	module that t/enc_module.enc uses
 ext/Encode/t/perlio.t		test script
+ext/Encode/t/piconv.t		test script
 ext/Encode/t/rt.pl		test script
 ext/Encode/t/unibench.pl	benchmark script
 ext/Encode/t/Unicode.t		test script
@@ -916,13 +917,18 @@ ext/IPC-SysV/t/shm.t	IPC::SysV test file
 ext/IPC-SysV/typemap	IPC::SysV typemap
 ext/List-Util/Changes		Util extension
 ext/List-Util/lib/List/Util.pm	List::Util
+ext/List-Util/lib/List/Util/PP.pm	List::Util
+ext/List-Util/lib/List/Util/XS.pm	List::Util
 ext/List-Util/lib/Scalar/Util.pm	Scalar::Util
+ext/List-Util/lib/Scalar/Util/PP.pm	Scalar::Util
+ext/List-Util/ListUtil.xs		Util extension
 ext/List-Util/Makefile.PL	Util extension
 ext/List-Util/multicall.h	Util extension
 ext/List-Util/README		Util extension
 ext/List-Util/t/00version.t	Scalar::Util
 ext/List-Util/t/blessed.t	Scalar::Util
 ext/List-Util/t/dualvar.t	Scalar::Util
+ext/List-Util/t/expfail.t	List::Util
 ext/List-Util/t/first.t		List::Util
 ext/List-Util/t/isvstring.t	Scalar::Util
 ext/List-Util/t/lln.t		Scalar::Util
@@ -931,6 +937,7 @@ ext/List-Util/t/max.t		List::Util
 ext/List-Util/t/minstr.t	List::Util
 ext/List-Util/t/min.t		List::Util
 ext/List-Util/t/openhan.t	Scalar::Util
+ext/List-Util/t/p_00version.t	Scalar::Util
 ext/List-Util/t/p_blessed.t	Scalar::Util
 ext/List-Util/t/p_first.t	List::Util
 ext/List-Util/t/p_lln.t		Scalar::Util
@@ -956,7 +963,7 @@ ext/List-Util/t/stack-corruption.t	List::Util
 ext/List-Util/t/sum.t		List::Util
 ext/List-Util/t/tainted.t	Scalar::Util
 ext/List-Util/t/weak.t		Scalar::Util
-ext/List-Util/Util.xs		Util extension
+ext/List-Util/XS.pp		List::Util
 ext/Math-BigInt-FastCalc/FastCalc.pm	Math::BigInt::FastCalc extension
 ext/Math-BigInt-FastCalc/FastCalc.xs	Math::BigInt::FastCalc extension
 ext/Math-BigInt-FastCalc/t/bigintfc.t	Math::BigInt::FastCalc extension
@@ -1765,6 +1772,7 @@ lib/Archive/Tar/t/src/short/foo.tgz.packed	Archive::Tar tests
 lib/assert.pl			assertion and panic with stack trace
 lib/autodie/exception.pm	Exception class for autodie
 lib/autodie/exception/system.pm	Exception class for autodying system()
+lib/autodie/hints.pm		Hinting interface for autodie
 lib/autodie.pm			Functions suceed or die with lexical scope
 lib/autodie/t/00-load.t			autodie - basic load
 lib/autodie/t/autodie.t			autodie - Basic functionality
@@ -1772,6 +1780,7 @@ lib/autodie/t/autodie_test_module.pm	autodie - test helper
 lib/autodie/t/backcompat.t		autodie - More Fatal backcompat
 lib/autodie/t/basic_exceptions.t	autodie - Basic exception tests
 lib/autodie/t/binmode.t			autodie - Binmode testing
+lib/autodie/t/blog_hints.t              autodie - Tests fro PJF's blog
 lib/autodie/t/caller.t			autodie - Caller diagnostics
 lib/autodie/t/context_lexical.t		autodie - Context clobbering lexically
 lib/autodie/t/context.t			autodie - Context clobbering tests
@@ -1784,6 +1793,14 @@ lib/autodie/t/Fatal.t			autodie - Fatal backcompatibility
 lib/autodie/t/filehandles.t		autodie - filehandle tests
 lib/autodie/t/fileno.t			autodie - fileno tests
 lib/autodie/t/flock.t			autodie - File locking tests
+lib/autodie/t/format-clobber.t		autodie - Don't clobber scalars
+lib/autodie/t/hints_insist.t		autodie - Test hints insistance
+lib/autodie/t/hints_pod_examples.t	autodie - Test hints POD examples
+lib/autodie/t/hints_provider_does.t	autodie - Test hints/does roles
+lib/autodie/t/hints_provider_easy_does_it.t	autodie - Test easy hints/does
+lib/autodie/t/hints_provider_isa.t	autodie - Test hints/inheritance
+lib/autodie/t/hints.t			autodie - Test hints interface
+lib/autodie/t/internal-backcompat.t	autodie - Back-compatibility tests
 lib/autodie/t/internal.t		autodie - internal interface tests
 lib/autodie/t/lethal.t			autodie - lethal is the one true name
 lib/autodie/t/lib/autodie/test/au/exception.pm	autodie - Australian helper
@@ -1791,14 +1808,24 @@ lib/autodie/t/lib/autodie/test/au.pm		autodie - Austrlaian helper
 lib/autodie/t/lib/autodie/test/badname.pm	autodie - Bad exception class
 lib/autodie/t/lib/autodie/test/missing.pm	autodie - Missing exception class
 lib/autodie/t/lib/Caller_helper.pm	autodie - Caller helper
+lib/autodie/t/lib/Hints_pod_examples.pm	autodie - Hints/pod helper
+lib/autodie/t/lib/Hints_provider_does.pm	autodie - Hints/does helper
+lib/autodie/t/lib/Hints_provider_easy_does_it.pm	autodie - Hints/easy helper
+lib/autodie/t/lib/Hints_provider_isa.pm	autodie - Hints/inherit helper
+lib/autodie/t/lib/Hints_test.pm		autodie - Hints test helper
 lib/autodie/t/lib/lethal.pm		autodie - with a better name
+lib/autodie/t/lib/my/autodie.pm         autodie - blog_hints.t helper
+lib/autodie/t/lib/OtherTypes.pm		autodie - Format clobberer helper.
 lib/autodie/t/lib/pujHa/ghach/Dotlh.pm	autodie - With Klingon honour
 lib/autodie/t/lib/pujHa/ghach.pm	autodie - Like a Klingon
+lib/autodie/t/lib/Some/Module.pm        autodie - blog_hints.t helper
 lib/autodie/t/mkdir.t			autodie - filesystem tests
 lib/autodie/t/open.t			autodie - Testing open
 lib/autodie/t/recv.t			autodie - send/recv tests
 lib/autodie/t/repeat.t			autodie - repeat autodie leak tests
 lib/autodie/t/scope_leak.t		autodie - file scope leak tests
+lib/autodie/t/string-eval-basic.t       autodie - Basic string eval test
+lib/autodie/t/string-eval-leak.t        autodie - String eval leak test
 lib/autodie/t/sysopen.t			autodie - sysopen tests
 lib/autodie/t/truncate.t		autodie - File truncation tests
 lib/autodie/t/unlink.t			autodie - Unlink system tests.
@@ -1815,10 +1842,14 @@ lib/autouse.t			See if autouse works
 lib/base/Changes		base.pm changelog
 lib/base.pm			Establish IS-A relationship at compile time
 lib/base/t/base.t		See if base works
+lib/base/t/compile-time.t	See if base works
+lib/base/t/fields-5.6.0.t	See if fields work
+lib/base/t/fields-5.8.0.t	See if fields work
 lib/base/t/fields-base.t	See if fields work
 lib/base/t/fields.t		See if fields work
 lib/base/t/isa.t		See if base's behaviour doesn't change
 lib/base/t/lib/Dummy.pm		Test module for base.pm
+lib/base/t/lib/HasSigDie.pm	Module for testing base.pm
 lib/base/t/sigdie.t		See if base works with SIGDIE
 lib/base/t/version.t		See if base works with versions
 lib/base/t/warnings.t		See if base works with warnings
@@ -2129,6 +2160,7 @@ lib/ExtUtils/CBuilder/Platform/Unix.pm	CBuilder methods for Unix
 lib/ExtUtils/CBuilder/Platform/VMS.pm	CBuilder methods for VMS
 lib/ExtUtils/CBuilder/Platform/Windows.pm	CBuilder methods for Windows
 lib/ExtUtils/CBuilder.pm	Compile and link C code for Perl modules
+lib/ExtUtils/CBuilder/t/00-have-compiler.t	ExtUtils::CBuilder tests
 lib/ExtUtils/CBuilder/t/01-basic.t	tests for ExtUtils::CBuilder
 lib/ExtUtils/CBuilder/t/02-link.t	tests for ExtUtils::CBuilder
 lib/ExtUtils/Changes		MakeMaker change log
@@ -2175,9 +2207,13 @@ lib/ExtUtils/MY.pm		MakeMaker user override class
 lib/ExtUtils/NOTES		Notes about MakeMaker internals
 lib/ExtUtils/Packlist.pm	Manipulates .packlist files
 lib/ExtUtils/ParseXS.pm		converts Perl XS code into C code
+lib/ExtUtils/ParseXS/Changes	ExtUtils::ParseXS change log
 lib/ExtUtils/ParseXS/t/basic.t	See if ExtUtils::ParseXS works
+lib/ExtUtils/ParseXS/t/usage.t	ExtUtils::ParseXS tests
 lib/ExtUtils/ParseXS/t/XSTest.pm	Test file for ExtUtils::ParseXS tests
 lib/ExtUtils/ParseXS/t/XSTest.xs	Test file for ExtUtils::ParseXS tests
+lib/ExtUtils/ParseXS/t/XSUsage.pm	ExtUtils::ParseXS tests
+lib/ExtUtils/ParseXS/t/XSUsage.xs	ExtUtils::ParseXS tests
 lib/ExtUtils/PATCHING		Suggestions for patching MakeMaker
 lib/ExtUtils/README		MakeMaker README
 lib/ExtUtils/t/00compile.t	See if MakeMaker modules compile
@@ -2194,6 +2230,7 @@ lib/ExtUtils/t/Constant.t	See if ExtUtils::Constant works
 lib/ExtUtils/t/cp.t		See if ExtUtils::Command works
 lib/ExtUtils/t/dir_target.t	Verify if dir_target() is supported
 lib/ExtUtils/t/Embed.t		See if ExtUtils::Embed and embedding works
+lib/ExtUtils/t/test_boilerplate.t MakeMaker test
 lib/ExtUtils/testlib.pm		Fixes up @INC to use just-built extension
 lib/ExtUtils/t/eu_command.t	See if ExtUtils::Command works
 lib/ExtUtils/t/FIRST_MAKEFILE.t		See if FIRST_MAKEFILE works
@@ -2202,6 +2239,7 @@ lib/ExtUtils/t/fix_libs.t	Test for ExtUtils::MakeMaker
 lib/ExtUtils/t/hints.t		See if hint files are honored.
 lib/ExtUtils/t/Installapi2.t	See if new api for ExtUtils::Install::install() works
 lib/ExtUtils/t/INSTALL_BASE.t	Test INSTALL_BASE in MakeMaker
+lib/ExtUtils/t/installed_file.t Test for ExtUtils::MakeMaker
 lib/ExtUtils/t/Installed.t	See if ExtUtils::Installed works
 lib/ExtUtils/t/Install.t	See if ExtUtils::Install works
 lib/ExtUtils/t/INST_PREFIX.t	See if MakeMaker can apply PREFIXs
@@ -2209,6 +2247,7 @@ lib/ExtUtils/t/INST.t		Check MakeMaker INST_* macros
 lib/ExtUtils/t/is_of_type.t	Test for ExtUtils::MakeMaker
 lib/ExtUtils/t/Liblist.t	See if ExtUtils::Liblist works
 lib/ExtUtils/t/make.t		See if make detection works
+lib/ExtUtils/t/MakeMaker_Parameters.t  test "MakeMaker Parameters" section
 lib/ExtUtils/t/maketext_filter.t	See if maketext_filter works
 lib/ExtUtils/t/Manifest.t	See if ExtUtils::Manifest works
 lib/ExtUtils/t/metafile_data.t	See if META.yml handling works
@@ -2593,6 +2632,7 @@ lib/Module/Build/t/moduleinfo.t	Module::Build
 lib/Module/Build/t/new_from_context.t	Module::Build
 lib/Module/Build/t/notes.t	Module::Build
 lib/Module/Build/t/parents.t	Module::Build
+lib/Module/Build/t/PL_files.t	Module::Build tests
 lib/Module/Build/t/pod_parser.t	Module::Build
 lib/Module/Build/t/ppm.t	Module::Build
 lib/Module/Build/t/runthrough.t	Module::Build
@@ -2603,6 +2643,7 @@ lib/Module/Build/t/test_type.t	Module::Build
 lib/Module/Build/t/tilde.t	Module::Build
 lib/Module/Build/t/use_tap_harness.t	Module::Build
 lib/Module/Build/t/versions.t	Module::Build
+lib/Module/Build/t/write_default_maniskip.t	Module::Build tests
 lib/Module/Build/t/xs.t		Module::Build
 lib/Module/Build/Version.pm	Module::Build
 lib/Module/Build/YAML.pm	Module::Build
@@ -3080,8 +3121,16 @@ lib/Test/Simple/t/buffer.t	Test::Builder buffering test
 lib/Test/Simple/t/Builder/Builder.t	Test::Builder tests
 lib/Test/Simple/t/Builder/carp.t	Test::Builder test
 lib/Test/Simple/t/Builder/create.t	Test::Builder test 
-lib/Test/Simple/t/Builder/curr_test.t	Test::Builder->curr_test tests
+lib/Test/Simple/t/Builder/current_test.t	Test::Builder tests
+lib/Test/Simple/t/Builder/current_test_without_plan.t	Test::Builder tests
 lib/Test/Simple/t/Builder/details.t	Test::Builder tests
+lib/Test/Simple/t/Builder/done_testing_double.t	Test::Builder tests
+lib/Test/Simple/t/Builder/done_testing_plan_mismatch.t	Test::Builder tests
+lib/Test/Simple/t/Builder/done_testing.t		Test::Builder tests
+lib/Test/Simple/t/Builder/done_testing_with_no_plan.t	Test::Builder tests
+lib/Test/Simple/t/Builder/done_testing_with_number.t	Test::Builder tests
+lib/Test/Simple/t/Builder/done_testing_with_plan.t	Test::Builder tests
+lib/Test/Simple/t/Builder/fork_with_new_stdout.t	Test::Builder tests
 lib/Test/Simple/t/Builder/has_plan2.t	Test::Builder tests
 lib/Test/Simple/t/Builder/has_plan.t	Test::Builder tests
 lib/Test/Simple/t/Builder/is_fh.t	Test::Builder tests
@@ -3089,6 +3138,7 @@ lib/Test/Simple/t/Builder/maybe_regex.t	Test::Builder tests
 lib/Test/Simple/t/Builder/no_diag.t	Test::Builder tests
 lib/Test/Simple/t/Builder/no_ending.t	Test::Builder tests
 lib/Test/Simple/t/Builder/no_header.t	Test::Builder tests
+lib/Test/Simple/t/Builder/no_plan_at_all.t	Test::Builder tests
 lib/Test/Simple/t/Builder/ok_obj.t	Test::Builder tests
 lib/Test/Simple/t/Builder/output.t	Test::Builder tests
 lib/Test/Simple/t/Builder/reset.t	Test::Builder tests
@@ -3153,6 +3203,7 @@ lib/Test/Simple/t/undef.t	Test::More test, undefs don't cause warnings
 lib/Test/Simple/t/useing.t	Test::More test, compile test
 lib/Test/Simple/t/use_ok.t	Test::More test, use_ok()
 lib/Test/Simple/t/utf8.t	Test::More test
+lib/Test/Simple/t/versions.t	Test::More test
 lib/Test/t/05_about_verbose.t	See if Test works
 lib/Test/t/fail.t		See if Test works
 lib/Test/t/mix.t		See if Test works
@@ -3635,6 +3686,7 @@ pod/perlmodinstall.pod		Perl modules: how to install from CPAN
 pod/perlmodlib.PL		Generate pod/perlmodlib.pod
 pod/perlmod.pod			Perl modules: how they work
 pod/perlmodstyle.pod		Perl modules: how to write modules with style
+pod/perlmroapi.pod		Perl method resolution plugin interface
 pod/perlnewmod.pod		Perl modules: preparing a new module for distribution
 pod/perlnumber.pod		Perl number semantics
 pod/perlobj.pod			Perl objects
@@ -3691,6 +3743,7 @@ pod/splitman			Splits perlfunc into multiple man pages
 pod/splitpod			Splits perlfunc into multiple pod pages
 Policy_sh.SH		Hold site-wide preferences between Configure runs.
 Porting/add-package.pl	Add/Update CPAN modules that are part of Core
+Porting/bump-perl-version	bump the perl version in relevant files
 Porting/check83.pl	Check whether we are 8.3-friendly
 Porting/checkansi.pl	Check source code for ANSI-C violations
 Porting/checkARGS_ASSERT.pl	Check we use every PERL_ARGS_ASSERT* macro
@@ -3984,7 +4037,6 @@ t/lib/Filter/Simple/ImportTest.pm	Helper file for Filter::Simple tests
 t/lib/filter-util.pl		See if Filter::Util::Call works
 t/lib/h2ph.h			Test header file for h2ph
 t/lib/h2ph.pht			Generated output from h2ph.h by h2ph, for comparison
-t/lib/HasSigDie.pm		Module for testing base.pm
 t/lib/locale/latin1		Part of locale.t in Latin 1
 t/lib/locale/utf8		Part of locale.t in UTF8
 t/lib/MakeMaker/Test/NoXS.pm		MakeMaker test utilities
@@ -4009,6 +4061,7 @@ t/lib/Sans_mypragma.pm			Test module for t/lib/mypragma.t
 t/lib/strict/refs		Tests of "use strict 'refs'" for strict.t
 t/lib/strict/subs		Tests of "use strict 'subs'" for strict.t
 t/lib/strict/vars		Tests of "use strict 'vars'" for strict.t
+t/lib/Test/Builder/NoOutput.pm	Utility module for testing Test::Builder
 t/lib/Test/Simple/Catch.pm	Utility module for testing Test::Simple
 t/lib/Test/Simple/sample_tests/death_in_eval.plx	for exit.t
 t/lib/Test/Simple/sample_tests/death.plx		for exit.t
@@ -4279,6 +4332,7 @@ t/op/wantarray.t		See if wantarray works
 t/op/write.t			See if write works (formats work)
 t/op/yadayada.t			See if ..., !!! and ??? work
 t/perl.supp			Perl valgrind suppressions
+t/pod/diag.t			Test completeness of perldiag.pod
 t/pod/emptycmd.t		Test empty pod directives
 t/pod/emptycmd.xr		Expected results for emptycmd.t
 t/pod/find.t			See if Pod::Find works

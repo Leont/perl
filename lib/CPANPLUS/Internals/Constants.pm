@@ -39,6 +39,7 @@ use constant CONFIG_BOXED   => 'CPANPLUS::Config::Boxed';
 use constant DEFAULT_SOURCE_ENGINE
                             => 'CPANPLUS::Internals::Source::Memory';
 
+use constant TARGET_INIT    => 'init';
 use constant TARGET_CREATE  => 'create';
 use constant TARGET_PREPARE => 'prepare';
 use constant TARGET_INSTALL => 'install';
@@ -278,13 +279,13 @@ use constant CPANPLUS_UA    => sub { ### for the version number ###
                                      "CPANPLUS/$CPANPLUS::Internals::VERSION" 
                                 };
 use constant TESTERS_URL    => sub {
-                                    "http://testers.cpan.org/show/" .
-                                    $_[0] .".yaml" 
+                                    'http://cpantesters.org/distro/'.
+                                    uc(substr($_[0],0,1)) .'/'. $_[0] . '.yaml';
                                 };
 use constant TESTERS_DETAILS_URL
                             => sub {
-                                    'http://testers.cpan.org/show/' .
-                                    $_[0] . '.html';
+                                    'http://cpantesters.org/distro/'.
+                                    uc(substr($_[0],0,1)) .'/'. $_[0];
                                 };         
 
 use constant CREATE_FILE_URI    

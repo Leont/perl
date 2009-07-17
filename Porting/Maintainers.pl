@@ -130,6 +130,12 @@ package Maintainers;
 # that blead can be patched freely if it is in sync with the
 # latest release on CPAN.
 
+# BUGS is an email or url to post bug reports.  For modules with
+# UPSTREAM => 'blead', use perl5-porters@perl.org.  rt.cpan.org
+# appears to automatically provide a URL for CPAN modules; any value
+# given here overrides the default:
+# http://rt.cpan.org/Public/Dist/Display.html?Name=$ModuleName
+
 # DISTRIBUTION names the tarball on CPAN which (allegedly) the files
 # included in core are derived from. Note that the file's version may not
 # necessarily match the newest version on CPAN.
@@ -170,10 +176,11 @@ package Maintainers;
     'Archive::Extract' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/Archive-Extract-0.32.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/Archive-Extract-0.34.tar.gz',
 	'FILES'		=> q[lib/Archive/Extract.pm lib/Archive/Extract],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'cpan',
+	'BUGS'		=> 'bug-archive-extract@rt.cpan.org',
 	},
 
     'Archive::Tar' =>
@@ -183,6 +190,7 @@ package Maintainers;
 	'FILES'		=> q[lib/Archive/Tar.pm lib/Archive/Tar],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'cpan',
+	'BUGS'		=> 'bug-archive-tar@rt.cpan.org',
 	},
 
     'Attribute::Handlers' =>
@@ -197,9 +205,15 @@ package Maintainers;
     'autodie' =>
 	{
 	'MAINTAINER'	=> 'pjf',
-	'DISTRIBUTION'	=> 'PJF/autodie-1.999.tar.gz',
+	'DISTRIBUTION'	=> 'PJF/autodie-2.06.tar.gz',
 	'FILES' 	=> q[lib/Fatal.pm lib/autodie.pm lib/autodie],
 	'EXCLUDED'	=> [ qr{^inc/Module/},
+
+                             # All these tests depend upon external
+                             # modules that don't exist when we're
+                             # building the core.  Hence, they can
+                             # never run, and should not be merged.
+
 			     qw(
 				t/boilerplate.t
 				t/critic.t
@@ -231,7 +245,7 @@ package Maintainers;
 	'MAINTAINER'	=> 'smccam',
 	'FILES'		=> q[ext/B/B/Concise.pm ext/B/t/concise.t],
 	'CPAN'		=> 0,
-	'UPSTREAM'	=> undef,
+	'UPSTREAM'	=> 'blead',
 	},
 
     'B::Debug' =>
@@ -245,6 +259,7 @@ package Maintainers;
 			   },
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> undef,
+	'UPSTREAM'	=> 'blead',
 	},
 
     'B::Deparse' =>
@@ -275,11 +290,9 @@ package Maintainers;
     'base' =>
 	{
 	'MAINTAINER'	=> 'rgarcia',
-	'DISTRIBUTION'	=> 'RGARCIA/base-2.12.tar.gz',
+	'DISTRIBUTION'	=> 'RGARCIA/base-2.14.tar.gz',
 	'FILES'		=> q[lib/base.pm lib/fields.pm lib/base],
-	'EXCLUDED'	=> [ qw( t/Dummy.pm t/compile-time.t t/fields-5.6.0.t
-				t/fields-5.8.0.t t/lib/HasSigDie.pm )
-			   ],
+	'EXCLUDED'	=> [ qw( t/Dummy.pm ) ],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> "blead",
 	},
@@ -388,7 +401,7 @@ package Maintainers;
     'CPAN' =>
 	{
 	'MAINTAINER'	=> 'andk',
-	'DISTRIBUTION'	=> 'ANDK/CPAN-1.94.tar.gz',
+	'DISTRIBUTION'	=> 'ANDK/CPAN-1.9402.tar.gz',
 	'FILES'		=> q[lib/CPAN.pm lib/CPAN],
 	'EXCLUDED'	=> [ qr{^distroprefs/},
 			     qr{^inc/Test/},
@@ -436,7 +449,7 @@ package Maintainers;
     'CPANPLUS' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/CPANPLUS-0.87_02.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/CPANPLUS-0.88.tar.gz',
 	'FILES'		=> q[lib/CPANPLUS.pm
 			     lib/CPANPLUS/Backend
 			     lib/CPANPLUS/Backend.pm
@@ -471,12 +484,13 @@ package Maintainers;
 			   ],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'cpan',
+	'BUGS'		=> 'bug-cpanplus@rt.cpan.org',
 	},
 
     'CPANPLUS::Dist::Build' =>
 	{
 	'MAINTAINER'	=> 'bingos',
-	'DISTRIBUTION'	=> 'BINGOS/CPANPLUS-Dist-Build-0.35_01.tar.gz',
+	'DISTRIBUTION'	=> 'BINGOS/CPANPLUS-Dist-Build-0.36.tar.gz',
 	'FILES'		=> q[lib/CPANPLUS/Dist/Build.pm
 			     lib/CPANPLUS/Dist/Build
 			    ],
@@ -563,7 +577,7 @@ package Maintainers;
     'Encode' =>
 	{
 	'MAINTAINER'	=> 'dankogai',
-	'DISTRIBUTION'	=> 'DANKOGAI/Encode-2.33.tar.gz',
+	'DISTRIBUTION'	=> 'DANKOGAI/Encode-2.35.tar.gz',
 	'FILES'		=> q[ext/Encode],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> undef,
@@ -600,11 +614,11 @@ package Maintainers;
     'ExtUtils::CBuilder' =>
 	{
 	'MAINTAINER'	=> 'kwilliams',
-	'DISTRIBUTION'	=> 'KWILLIAMS/ExtUtils-CBuilder-0.24.tar.gz',
+	'DISTRIBUTION'	=> 'DAGOLDEN/ExtUtils-CBuilder-0.2602.tar.gz',
 	'FILES'		=> q[lib/ExtUtils/CBuilder.pm lib/ExtUtils/CBuilder],
-	'EXCLUDED'	=> [ qw{bleadcheck.pl}, ],
+	'EXCLUDED'	=> [ qw{devtools} ],
 	'CPAN'		=> 1,
-	'UPSTREAM'	=> undef,
+	'UPSTREAM'	=> 'cpan',
 	},
 
     'ExtUtils::Command' =>
@@ -680,13 +694,14 @@ package Maintainers;
     'ExtUtils::MakeMaker' =>
 	{
 	'MAINTAINER'	=> 'mschwern',
-	'DISTRIBUTION'	=> 'MSCHWERN/ExtUtils-MakeMaker-6.53_02.tar.gz',
+	'DISTRIBUTION'	=> 'MSCHWERN/ExtUtils-MakeMaker-6.55_01.tar.gz',
 			    # note that t/lib/TieOut.pm is included in
 			    # more than one distro
 	'FILES'		=> q[lib/ExtUtils/{Liblist,MakeMaker,Mkbootstrap,Mksymlists,MM*,MY,testlib}.pm
 			     lib/ExtUtils/{Command,Liblist,MakeMaker}
 			     lib/ExtUtils/t/{[0-9FLV-Zabdf-z]*,IN*,Mkbootstrap,MM_*,PL_FILES,cd,config}.t
 			     lib/ExtUtils/t/testdata/
+			     lib/ExtUtils/t/MakeMaker_Parameters.t
 			     lib/ExtUtils/Changes
 			     lib/ExtUtils/{NOTES,PATCHING,README,TODO}
 			     lib/ExtUtils/instmodsh
@@ -723,13 +738,13 @@ package Maintainers;
     'ExtUtils::ParseXS' =>
 	{
 	'MAINTAINER'	=> 'kwilliams',
-	'DISTRIBUTION'	=> 'KWILLIAMS/ExtUtils-ParseXS-2.19.tar.gz',
+	'DISTRIBUTION'	=> 'DAGOLDEN/ExtUtils-ParseXS-2.20_01.tar.gz',
 	'FILES'		=> q[lib/ExtUtils/ParseXS.pm
 			     lib/ExtUtils/ParseXS
 			     lib/ExtUtils/xsubpp
 			    ],
 	'CPAN'		=> 1,
-	'UPSTREAM'	=> undef,
+	'UPSTREAM'	=> 'cpan',
 	},
 
     'faq' =>
@@ -743,7 +758,7 @@ package Maintainers;
     'File::Fetch' =>
 	{
 	'MAINTAINER'	=> 'kane',
-	'DISTRIBUTION'	=> 'KANE/File-Fetch-0.18.tar.gz',
+	'DISTRIBUTION'	=> 'KANE/File-Fetch-0.20.tar.gz',
 	'FILES'		=> q[lib/File/Fetch.pm lib/File/Fetch],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> 'cpan',
@@ -752,7 +767,7 @@ package Maintainers;
     'File::Path' =>
 	{
 	'MAINTAINER'	=> 'dland',
-	'DISTRIBUTION'	=> 'DLAND/File-Path-2.07.tar.gz',
+	'DISTRIBUTION'	=> 'DLAND/File-Path-2.07_03.tar.gz',
 	'FILES'		=> q[lib/File/Path.pm lib/File/Path.t],
 	'EXCLUDED'	=> [ qw{eg/setup-extra-tests
 				t/pod.t
@@ -769,7 +784,7 @@ package Maintainers;
     'File::Temp' =>
 	{
 	'MAINTAINER'	=> 'tjenness',
-	'DISTRIBUTION'	=> 'TJENNESS/File-Temp-0.21.tar.gz',
+	'DISTRIBUTION'	=> 'TJENNESS/File-Temp-0.22.tar.gz',
 	'FILES'		=> q[lib/File/Temp.pm lib/File/Temp],
 	'EXCLUDED'	=> [ qw{misc/benchmark.pl
 				misc/results.txt
@@ -859,7 +874,7 @@ package Maintainers;
 	'MAINTAINER'	=> 'p5p',
 	'DISTRIBUTION'	=> 'SBURKE/I18N-LangTags-0.35.tar.gz',
 	'FILES'		=> q[lib/I18N/LangTags.pm lib/I18N/LangTags],
-	'CPAN'		=> 1,
+	'CPAN'		=> 0,
 	'UPSTREAM'	=> 'blead',
 	},
 
@@ -1170,7 +1185,7 @@ package Maintainers;
     'Module::Build' =>
 	{
 	'MAINTAINER'	=> 'kwilliams',
-	'DISTRIBUTION'	=> 'DAGOLDEN/Module-Build-0.33_02.tar.gz',
+	'DISTRIBUTION'	=> 'DAGOLDEN/Module-Build-0.34.tar.gz',
 	'FILES'		=> q[lib/Module/Build lib/Module/Build.pm],
 	'EXCLUDED'	=> [ qw{ t/par.t t/signature.t scripts/bundle.pl}, ],
 	'CPAN'		=> 1,
@@ -1552,7 +1567,7 @@ package Maintainers;
     'Safe' =>
 	{
 	'MAINTAINER'	=> 'rgarcia',
-	'DISTRIBUTION'	=> 'RGARCIA/Safe-2.16.tar.gz',
+	'DISTRIBUTION'	=> 'RGARCIA/Safe-2.17.tar.gz',
 	'FILES'		=> q[ext/Safe],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> "blead",
@@ -1561,7 +1576,7 @@ package Maintainers;
     'Scalar-List-Utils' =>
 	{
 	'MAINTAINER'	=> 'gbarr',
-	'DISTRIBUTION'	=> 'GBARR/Scalar-List-Utils-1.19.tar.gz',
+	'DISTRIBUTION'	=> 'GBARR/Scalar-List-Utils-1.21.tar.gz',
 	# Note that perl uses its own version of Makefile.PL
 	'FILES'		=> q[ext/List-Util],
 	'EXCLUDED'	=> [ qr{^inc/Module/},
@@ -1639,7 +1654,7 @@ package Maintainers;
     'Term::ANSIColor' =>
 	{
 	'MAINTAINER'	=> 'rra',
-	'DISTRIBUTION'	=> 'RRA/ANSIColor-2.00.tar.gz',
+	'DISTRIBUTION'	=> 'RRA/ANSIColor-2.01.tar.gz',
 	'FILES'		=> q{lib/Term/ANSIColor.pm lib/Term/ANSIColor},
 	'EXCLUDED'	=> [ qr{^tests/},
 			     qw(t/pod-spelling.t t/pod.t)
@@ -1705,40 +1720,26 @@ package Maintainers;
     'Test::Simple' =>
 	{
 	'MAINTAINER'	=> 'mschwern',
-	'DISTRIBUTION'	=> 'MSCHWERN/Test-Simple-0.86.tar.gz',
+	'DISTRIBUTION'	=> 'MSCHWERN/Test-Simple-0.92.tar.gz',
 	'FILES'		=> q[lib/Test/Simple.pm
 			     lib/Test/Simple
 			     lib/Test/Builder.pm
 			     lib/Test/Builder
 			     lib/Test/More.pm
 			     lib/Test/Tutorial.pod
-			     t/lib/Test/Simple
+			     t/lib/Test/
 			     t/lib/Dev/Null.pm
 			    ],
 	'EXCLUDED'	=> [
 			     # NB - TieOut.pm comes with more than one
 			     # distro. We use the MM one
-			     # XXX should all these actually be excluded
-			     # from blead ???? - DAPM
 			     qw{.perlcriticrc
 				.perltidyrc
 				t/pod.t
 				t/pod-coverage.t
-				t/versions.t
-				t/Builder/current_test.t
-				t/Builder/current_test_without_plan.t
-				t/Builder/done_testing.t
-				t/Builder/done_testing_double.t
-				t/Builder/done_testing_plan_mismatch.t
-				t/Builder/done_testing_with_no_plan.t
-				t/Builder/done_testing_with_number.t
-				t/Builder/done_testing_with_plan.t
-				t/Builder/fork_with_new_stdout.t
-				t/Builder/no_plan_at_all.t
 				t/Builder/reset_outputs.t
 
 				lib/Test/Builder/IO/Scalar.pm
-				t/lib/Test/Builder/NoOutput.pm
 
 				t/lib/TieOut.pm
 			       }
@@ -1914,7 +1915,7 @@ package Maintainers;
     'Time::Piece' =>
 	{
 	'MAINTAINER'	=> 'msergeant',
-	'DISTRIBUTION'	=> 'MSERGEANT/Time-Piece-1.14.tar.gz',
+	'DISTRIBUTION'	=> 'MSERGEANT/Time-Piece-1.15.tar.gz',
 	'FILES'		=> q[ext/Time-Piece],
 	'CPAN'		=> 1,
 	'UPSTREAM'	=> undef,

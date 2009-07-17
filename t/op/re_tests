@@ -1302,6 +1302,7 @@ a*(*F)	aaaab	n	-	-
 X(\w+)(?=\s)|X(\w+)	Xab	y	[$1-$2]	[-ab]
 
 #check that branch reset works ok.
+(?|(a))	a	y	$1-$+-$^N	a-a-a
 (?|a(.)b|d(.(o).)d|i(.)(.)j)(.)	d!o!da	y	$1-$2-$3	!o!-o-a
 (?|a(.)b|d(.(o).)d|i(.)(.)j)(.)	aabc	y	$1-$2-$3	a--c
 (?|a(.)b|d(.(o).)d|i(.)(.)j)(.)	ixyjp	y	$1-$2-$3	x-y-p
@@ -1311,6 +1312,11 @@ X(\w+)(?=\s)|X(\w+)	Xab	y	[$1-$2]	[-ab]
 (?|(?|(a)|(b))|(?|(c)|(d)))	d	y	$1	d
 (.)(?|(.)(.)x|(.)d)(.)	abcde	y	$1-$2-$3-$4-$5-	b-c--e--
 (\N)(?|(\N)(\N)x|(\N)d)(\N)	abcde	y	$1-$2-$3-$4-$5-	b-c--e--
+(?|(?<foo>x))	x	y	$+{foo}	x
+(?|(?<foo>x)|(?<bar>y))	x	y	$+{foo}	x
+(?|(?<bar>y)|(?<foo>x))	x	y	$+{foo}	x
+(?<bar>)(?|(?<foo>x))	x	y	$+{foo}	x
+
 #Bug #41492
 (?(DEFINE)(?<A>(?&B)+)(?<B>a))(?&A)	a	y	$&	a
 (?(DEFINE)(?<A>(?&B)+)(?<B>a))(?&A)	aa	y	$&	aa
@@ -1365,8 +1371,8 @@ foo(\h)bar	foo\tbar	y	$1	\t
 .*?(?:(\w)|(\w))x	abx	y	$1-$2	b-
 
 0{50}	000000000000000000000000000000000000000000000000000	y	-	-
-^a?(?=b)b	ab	B	$&	ab	# Bug #56690
-^a*(?=b)b	ab	B	$&	ab	# Bug #56690
+^a?(?=b)b	ab	y	$&	ab	# Bug #56690
+^a*(?=b)b	ab	y	$&	ab	# Bug #56690
 />\d+$ \n/ix	>10\n	y	$&	>10
 />\d+$ \n/ix	>1\n	y	$&	>1
 /\d+$ \n/ix	>10\n	y	$&	10

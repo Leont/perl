@@ -1,5 +1,51 @@
 Revision history for Perl extension ExtUtils::CBuilder.
 
+0.2602 - Sat Jul  4 10:57:12 EDT 2009
+
+ Bugs fixed:
+ - Fixed 00-have-compiler.t if $^X is a relative path [David Wheeler]
+
+0.2601 - Wed Jul  1 09:37:39 EDT 2009
+
+ Bugs fixed:
+ - On VMS, cleans up extra files generated during testing
+   [John E. Malmberg, Craig Berry]
+
+0.26 - Mon Jun 29 20:11:52 EDT 2009
+
+ - No changes from 0.25_01
+
+0.25_01 - Sat Jun 27 23:13:20 EDT 2009
+
+ - Changed test library to Test::More
+
+ - Added tests for have_compiler
+
+ - Skips tests that need a compiler if have_compiler is false
+
+ - have_compiler will try to compile in the current directory
+   if compiling in tmpdir fails for whatever reason
+
+0.25 - Fri Jun 26 16:18:13 EDT 2009
+
+ - Slight diagnostic improvements in link.t
+
+0.24_01 - Sun Mar  8 14:50:10 2009
+
+ - On Windows, don't generate "mt" command when CRT is statically
+   linked. [Jan Dubois]
+
+ - On Cygwin, examine $Config{useshrplib} to see whether we're
+   supposed to be linking with a shared perl library or not. [Reini
+   Urban]
+
+ - In link_executable() on Cygwin, trust $Config{ld} rather than using
+   $Config{cc} for linking. [Reini Urban]
+
+ - Add 'haiku' as a Unix-like platform. [Ingo Weinhold]
+
+0.24 - Fri Aug 15 22:01:48 2008
+
  - Added 'gnu' and 'gnukfreebsd' as Unix variants. [Niko Tyni]
 
  - Brought in some VMS fixes from bleadperl: "Correct and complete

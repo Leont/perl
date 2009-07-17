@@ -103,6 +103,7 @@ recursive, but it's recursive on basic blocks, not on tree nodes.
 #include "keywords.h"
 
 #define CALL_PEEP(o) CALL_FPTR(PL_peepp)(aTHX_ o)
+#define CALL_OPFREEHOOK(o) if (PL_opfreehook) CALL_FPTR(PL_opfreehook)(aTHX_ o)
 
 #if defined(PL_OP_SLAB_ALLOC)
 
@@ -481,6 +482,11 @@ Perl_op_free(pTHX_ OP *o)
 	    break;
 	}
     }
+
+    /* Call the op_free hook if it has been set. Do it now so that it's called
+     * at the right time for refcounted ops, but still before all of the kids
+     * are freed. */
+    CALL_OPFREEHOOK(o);
 
     if (o->op_flags & OPf_KIDS) {
         register OP *kid, *nextkid;
@@ -3339,6 +3345,7 @@ S_pmtrans(pTHX_ OP *o, OP *expr, OP *repl)
 	SvREFCNT_dec(PAD_SVl(cPADOPo->op_padix));
 	PAD_SETSV(cPADOPo->op_padix, swash);
 	SvPADTMP_on(swash);
+	SvREADONLY_on(swash);
 #else
 	cSVOPo->op_sv = swash;
 #endif
@@ -3857,7 +3864,7 @@ Perl_utilize(pTHX_ int aver, I32 floor, OP *version, OP *idop, OP *arg)
 	    SV *meth;
 
 	    if (version->op_type != OP_CONST || !SvNIOKp(vesv))
-		Perl_croak(aTHX_ "Version number must be constant number");
+		Perl_croak(aTHX_ "Version number must be a constant number");
 
 	    /* Make copy of idop so we don't free it twice */
 	    pack = newSVOP(OP_CONST, 0, newSVsv(((SVOP*)idop)->op_sv));
@@ -8961,6 +8968,7 @@ const_sv_xsub(pTHX_ CV* cv)
     if (items != 0) {
 	NOOP;
 #if 0
+	/* diag_listed_as: SKIPME */
         Perl_croak(aTHX_ "usage: %s::%s()",
                    HvNAME_get(GvSTASH(CvGV(cv))), GvNAME(CvGV(cv)));
 #endif
