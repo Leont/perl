@@ -5144,6 +5144,9 @@ Perl_sv_magic(pTHX_ register SV *const sv, SV *const obj, const int how,
     case PERL_MAGIC_dbfile:
 	SvRMAGICAL_on(sv);
 	break;
+    case PERL_MAGIC_tied:
+	SvMAGIC(sv)->mg_flags |= MGf_ARRAY;
+	break;
     }
 }
 

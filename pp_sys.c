@@ -859,6 +859,7 @@ PP(pp_tie)
 	    Perl_croak(aTHX_
 		       "Self-ties of arrays and hashes are not supported");
 	sv_magic(varsv, (SvRV(sv) == varsv ? NULL : sv), how, NULL, 0);
+	SvMAGIC(varsv)->mg_flags |= MGf_ARRAY;
     }
     LEAVE;
     SP = PL_stack_base + markoff;
