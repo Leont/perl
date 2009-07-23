@@ -21,6 +21,15 @@ struct mgvtbl {
     					SV *nsv, const char *name, I32 namlen);
     int		(CPERLscope(*svt_dup))	(pTHX_ MAGIC *mg, CLONE_PARAMS *param);
     int		(CPERLscope(*svt_local))(pTHX_ SV *nsv, MAGIC *mg);
+
+    int		(CPERLscope(*avt_push)   (pTHX_ AV *av, SV* value, MAGIC* mg));
+    SV*		(CPERLscope(*avt_pop)    (pTHX_ AV *av, MAGIC* mg));
+    int		(CPERLscope(*avt_unshift)(pTHX_ AV *av, I32 count, MAGIC* mg));
+    SV*		(CPERLscope(*avt_shift)  (pTHX_ AV *av, MAGIC* mg));
+    int		(CPERLscope(*avt_extend) (pTHX_ AV *av, I32 index, MAGIC* mg));
+    int		(CPERLscope(*avt_exists) (pTHX_ AV *av, I32 index, MAGIC* mg));
+    int		(CPERLscope(*avt_delete) (pTHX_ AV *av, I32 index, MAGIC* mg));
+    void	(CPERLscope(*avt_store_size) (pTHX_ SV *av, I32 index, MAGIC* mg));
 };
 #endif
 
@@ -42,6 +51,7 @@ struct magic {
 #define MGf_COPY       8	/* has an svt_copy  MGVTBL entry */
 #define MGf_DUP     0x10 	/* has an svt_dup   MGVTBL entry */
 #define MGf_LOCAL   0x20	/* has an svt_local MGVTBL entry */
+#define MGf_ARRAY   0x40    /* has one or more of the avt_* MGVTBL entries */
 
 #define MgTAINTEDDIR(mg)	(mg->mg_flags & MGf_TAINTEDDIR)
 #define MgTAINTEDDIR_on(mg)	(mg->mg_flags |= MGf_TAINTEDDIR)
