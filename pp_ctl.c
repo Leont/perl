@@ -3318,7 +3318,7 @@ PP(pp_require)
 	    for (i = 0; i <= AvFILL(ar); i++) {
 		SV * const dirsv = *av_fetch(ar, i, TRUE);
 
-		if (SvTIED_mg((const SV *)ar, PERL_MAGIC_tied))
+		if (get_array_magic(ar)) /* Shouldn't this just be SvGETMAGIC(dirsv) */
 		    mg_get(dirsv);
 		if (SvROK(dirsv)) {
 		    int count;

@@ -69,6 +69,7 @@
 #define av_store		Perl_av_store
 #define av_undef		Perl_av_undef
 #define av_unshift		Perl_av_unshift
+#define get_array_magic		Perl_get_array_magic
 #if defined(PERL_IN_AV_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
 #define get_aux_mg		S_get_aux_mg
@@ -2416,6 +2417,7 @@
 #define av_store(a,b,c)		Perl_av_store(aTHX_ a,b,c)
 #define av_undef(a)		Perl_av_undef(aTHX_ a)
 #define av_unshift(a,b)		Perl_av_unshift(aTHX_ a,b)
+#define get_array_magic(a)	Perl_get_array_magic(aTHX_ a)
 #if defined(PERL_IN_AV_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
 #define get_aux_mg(a)		S_get_aux_mg(aTHX_ a)

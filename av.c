@@ -35,7 +35,7 @@ Perl_av_reify(pTHX_ AV *av)
     if (AvREAL(av))
 	return;
 #ifdef DEBUGGING
-    if (SvTIED_mg((const SV *)av, PERL_MAGIC_tied) && ckWARN_d(WARN_DEBUGGING))
+    if (get_array_magic(av) && ckWARN_d(WARN_DEBUGGING))
 	Perl_warner(aTHX_ packWARN(WARN_DEBUGGING), "av_reify called on tied array");
 #endif
     key = AvMAX(av) + 1;
@@ -72,7 +72,7 @@ Perl_av_extend(pTHX_ AV *av, I32 key)
     PERL_ARGS_ASSERT_AV_EXTEND;
     assert(SvTYPE(av) == SVt_PVAV);
 
-    mg = SvTIED_mg((const SV *)av, PERL_MAGIC_tied);
+    mg = get_array_magic(av);
     if (mg) {
 	dSP;
 	ENTER;
@@ -486,7 +486,7 @@ Perl_av_undef(pTHX_ register AV *av)
     assert(SvTYPE(av) == SVt_PVAV);
 
     /* Give any tie a chance to cleanup first */
-    if (SvTIED_mg((const SV *)av, PERL_MAGIC_tied)) 
+    if (get_array_magic(av)) 
 	av_fill(av, -1);
 
     if (AvREAL(av)) {
@@ -523,6 +523,12 @@ Perl_av_create_and_push(pTHX_ AV **const avp, SV *const val)
     av_push(*avp, val);
 }
 
+MAGIC*
+Perl_get_array_magic(pTHX_ AV* av) {
+    PERL_ARGS_ASSERT_GET_ARRAY_MAGIC;
+    return SvTIED_mg((const SV *)av, PERL_MAGIC_tied);
+}
+
 /*
 =for apidoc av_push
 
@@ -544,7 +550,7 @@ Perl_av_push(pTHX_ register AV *av, SV *val)
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
 
-    if ((mg = SvTIED_mg((const SV *)av, PERL_MAGIC_tied))) {
+    if ((mg = get_array_magic(av))) {
 	dSP;
 	PUSHSTACKi(PERLSI_MAGIC);
 	PUSHMARK(SP);
@@ -582,7 +588,7 @@ Perl_av_pop(pTHX_ register AV *av)
 
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
-    if ((mg = SvTIED_mg((const SV *)av, PERL_MAGIC_tied))) {
+    if ((mg = get_array_magic(av))) {
 	dSP;    
 	PUSHSTACKi(PERLSI_MAGIC);
 	PUSHMARK(SP);
@@ -652,7 +658,7 @@ Perl_av_unshift(pTHX_ register AV *av, register I32 num)
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
 
-    if ((mg = SvTIED_mg((const SV *)av, PERL_MAGIC_tied))) {
+    if ((mg = get_array_magic(av))) {
 	dSP;
 	PUSHSTACKi(PERLSI_MAGIC);
 	PUSHMARK(SP);
@@ -724,7 +730,7 @@ Perl_av_shift(pTHX_ register AV *av)
 
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
-    if ((mg = SvTIED_mg((const SV *)av, PERL_MAGIC_tied))) {
+    if ((mg = get_array_magic(av))) {
 	dSP;
 	PUSHSTACKi(PERLSI_MAGIC);
 	PUSHMARK(SP);
@@ -796,7 +802,7 @@ Perl_av_fill(pTHX_ register AV *av, I32 fill)
 
     if (fill < 0)
 	fill = -1;
-    if ((mg = SvTIED_mg((const SV *)av, PERL_MAGIC_tied))) {
+    if ((mg = get_array_magic(av))) {
 	dSP;            
 	ENTER;
 	SAVETMPS;
@@ -858,7 +864,7 @@ Perl_av_delete(pTHX_ AV *av, I32 key, I32 flags)
 
     if (SvRMAGICAL(av)) {
         const MAGIC * const tied_magic
-	    = mg_find((const SV *)av, PERL_MAGIC_tied);
+	    = get_array_magic(av);
         if ((tied_magic || mg_find((const SV *)av, PERL_MAGIC_regdata))) {
             /* Handle negative array indices 20020222 MJD */
             SV **svp;
@@ -943,7 +949,7 @@ Perl_av_exists(pTHX_ AV *av, I32 key)
 
     if (SvRMAGICAL(av)) {
         const MAGIC * const tied_magic
-	    = mg_find((const SV *)av, PERL_MAGIC_tied);
+	    = get_array_magic(av);
         if (tied_magic || mg_find((const SV *)av, PERL_MAGIC_regdata)) {
 	    SV * const sv = sv_newmortal();
             MAGIC *mg;

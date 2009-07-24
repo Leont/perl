@@ -257,6 +257,12 @@ PERL_CALLCONV IV*	Perl_av_iter_p(pTHX_ AV *av)
 #define PERL_ARGS_ASSERT_AV_ITER_P	\
 	assert(av)
 
+PERL_CALLCONV MAGIC*	Perl_get_array_magic(pTHX_ AV *av)
+			__attribute__nonnull__(pTHX_1);
+#define PERL_ARGS_ASSERT_GET_ARRAY_MAGIC	\
+	assert(av)
+
+
 #if defined(PERL_IN_AV_C) || defined(PERL_DECL_PROT)
 STATIC MAGIC*	S_get_aux_mg(pTHX_ AV *av)
 			__attribute__nonnull__(pTHX_1);

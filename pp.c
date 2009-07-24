@@ -4336,7 +4336,7 @@ PP(pp_splice)
     I32 newlen;
     I32 after;
     I32 diff;
-    const MAGIC * const mg = SvTIED_mg((const SV *)ary, PERL_MAGIC_tied);
+    const MAGIC * const mg = get_array_magic(ary);
 
     if (mg) {
 	*MARK-- = SvTIED_obj(MUTABLE_SV(ary), mg);
@@ -4533,7 +4533,7 @@ PP(pp_push)
 {
     dVAR; dSP; dMARK; dORIGMARK; dTARGET;
     register AV * const ary = MUTABLE_AV(*++MARK);
-    const MAGIC * const mg = SvTIED_mg((const SV *)ary, PERL_MAGIC_tied);
+    const MAGIC * const mg = get_array_magic(ary);
 
     if (mg) {
 	*MARK-- = SvTIED_obj(MUTABLE_SV(ary), mg);
@@ -4584,7 +4584,7 @@ PP(pp_unshift)
 {
     dVAR; dSP; dMARK; dORIGMARK; dTARGET;
     register AV *ary = MUTABLE_AV(*++MARK);
-    const MAGIC * const mg = SvTIED_mg((const SV *)ary, PERL_MAGIC_tied);
+    const MAGIC * const mg = get_array_magic(ary);
 
     if (mg) {
 	*MARK-- = SvTIED_obj(MUTABLE_SV(ary), mg);
@@ -4748,7 +4748,7 @@ PP(pp_split)
 	av_extend(ary,0);
 	av_clear(ary);
 	SPAGAIN;
-	if ((mg = SvTIED_mg((const SV *)ary, PERL_MAGIC_tied))) {
+	if ((mg = get_array_magic(ary))) {
 	    PUSHMARK(SP);
 	    XPUSHs(SvTIED_obj(MUTABLE_SV(ary), mg));
 	}
