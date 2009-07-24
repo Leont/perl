@@ -526,7 +526,13 @@ Perl_av_create_and_push(pTHX_ AV **const avp, SV *const val)
 MAGIC*
 Perl_get_array_magic(pTHX_ AV* av) {
     PERL_ARGS_ASSERT_GET_ARRAY_MAGIC;
-    return SvTIED_mg((const SV *)av, PERL_MAGIC_tied);
+    if (SvRMAGICAL((const SV*)av)) {
+	MAGIC* magic;
+	for (magic = SvMAGIC((const SV*)av); magic; magic = magic->mg_moremagic)
+	    if (magic->mg_flags & MGf_ARRAY)
+		return magic;
+    }
+    return NULL;
 }
 
 /*
