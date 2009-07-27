@@ -22,14 +22,14 @@ struct mgvtbl {
     int		(CPERLscope(*svt_dup))	(pTHX_ MAGIC *mg, CLONE_PARAMS *param);
     int		(CPERLscope(*svt_local))(pTHX_ SV *nsv, MAGIC *mg);
 
-    int		(CPERLscope(*avt_push))    (pTHX_ AV *av, SV* value, MAGIC* mg);
+    int		(CPERLscope(*avt_push))    (pTHX_ AV *av, SV** value, I32 count, MAGIC* mg);
     SV*		(CPERLscope(*avt_pop))     (pTHX_ AV *av, MAGIC* mg);
-    int		(CPERLscope(*avt_unshift)) (pTHX_ AV *av, I32 count, MAGIC* mg);
+    int		(CPERLscope(*avt_unshift)) (pTHX_ AV *av, SV** value, I32 count, MAGIC* mg);
     SV*		(CPERLscope(*avt_shift))   (pTHX_ AV *av, MAGIC* mg);
     int		(CPERLscope(*avt_extend))  (pTHX_ AV *av, I32 count, MAGIC* mg);
     int		(CPERLscope(*avt_exists))  (pTHX_ AV *av, I32 index, MAGIC* mg);
     int		(CPERLscope(*avt_delete))  (pTHX_ AV *av, I32 index, MAGIC* mg);
-    void	(CPERLscope(*avt_fill))    (pTHX_ SV *av, I32 count, MAGIC* mg);
+    int		(CPERLscope(*avt_fill))    (pTHX_ AV *av, I32 count, MAGIC* mg);
 };
 #endif
 
