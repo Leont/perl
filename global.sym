@@ -52,7 +52,6 @@ Perl_av_undef
 Perl_av_unshift
 Perl_av_arylen_p
 Perl_av_iter_p
-Perl_get_array_magic
 Perl_block_gimme
 Perl_call_list
 Perl_cast_ulong

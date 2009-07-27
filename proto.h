@@ -1788,7 +1788,6 @@ PERL_CALLCONV int	Perl_magic_wipepack(pTHX_ SV* sv, MAGIC* mg)
 #define PERL_ARGS_ASSERT_MAGIC_WIPEPACK	\
 	assert(sv); assert(mg)
 
-
 PERL_CALLCONV int	Perl_magic_push(pTHX_ AV* av, SV** values, I32 count, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_2)
@@ -1838,7 +1837,6 @@ PERL_CALLCONV int	Perl_magic_fill(pTHX_ AV* av, I32 count, MAGIC* mg)
 			__attribute__nonnull__(pTHX_3);
 #define PERL_ARGS_ASSERT_MAGIC_FILL	\
 	assert(av); assert(mg)
-
 
 
 PERL_CALLCONV void	Perl_markstack_grow(pTHX);

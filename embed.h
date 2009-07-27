@@ -69,7 +69,9 @@
 #define av_store		Perl_av_store
 #define av_undef		Perl_av_undef
 #define av_unshift		Perl_av_unshift
+#ifdef PERL_CORE
 #define get_array_magic		Perl_get_array_magic
+#endif
 #if defined(PERL_IN_AV_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
 #define get_aux_mg		S_get_aux_mg
@@ -472,8 +474,6 @@
 #define magic_set_all_env	Perl_magic_set_all_env
 #define magic_sizepack		Perl_magic_sizepack
 #define magic_wipepack		Perl_magic_wipepack
-#endif
-#ifdef PERL_CORE
 #define magic_push		Perl_magic_push
 #define magic_pop		Perl_magic_pop
 #define magic_unshift		Perl_magic_unshift
@@ -2427,7 +2427,9 @@
 #define av_store(a,b,c)		Perl_av_store(aTHX_ a,b,c)
 #define av_undef(a)		Perl_av_undef(aTHX_ a)
 #define av_unshift(a,b)		Perl_av_unshift(aTHX_ a,b)
+#ifdef PERL_CORE
 #define get_array_magic(a)	Perl_get_array_magic(aTHX_ a)
+#endif
 #if defined(PERL_IN_AV_C) || defined(PERL_DECL_PROT)
 #ifdef PERL_CORE
 #define get_aux_mg(a)		S_get_aux_mg(aTHX_ a)
@@ -2824,8 +2826,6 @@
 #define magic_set_all_env(a,b)	Perl_magic_set_all_env(aTHX_ a,b)
 #define magic_sizepack(a,b)	Perl_magic_sizepack(aTHX_ a,b)
 #define magic_wipepack(a,b)	Perl_magic_wipepack(aTHX_ a,b)
-#endif
-#ifdef PERL_CORE
 #define magic_push(a,b,c,d)	Perl_magic_push(aTHX_ a,b,c,d)
 #define magic_pop(a,b)		Perl_magic_pop(aTHX_ a,b)
 #define magic_unshift(a,b,c,d)	Perl_magic_unshift(aTHX_ a,b,c,d)
