@@ -473,6 +473,16 @@
 #define magic_sizepack		Perl_magic_sizepack
 #define magic_wipepack		Perl_magic_wipepack
 #endif
+#ifdef PERL_CORE
+#define magic_push		Perl_magic_push
+#define magic_pop		Perl_magic_pop
+#define magic_unshift		Perl_magic_unshift
+#define magic_shift		Perl_magic_shift
+#define magic_extend		Perl_magic_extend
+#define magic_exists		Perl_magic_exists
+#define magic_delete		Perl_magic_delete
+#define magic_fill		Perl_magic_fill
+#endif
 #define markstack_grow		Perl_markstack_grow
 #if defined(USE_LOCALE_COLLATE)
 #ifdef PERL_CORE
@@ -2814,6 +2824,16 @@
 #define magic_set_all_env(a,b)	Perl_magic_set_all_env(aTHX_ a,b)
 #define magic_sizepack(a,b)	Perl_magic_sizepack(aTHX_ a,b)
 #define magic_wipepack(a,b)	Perl_magic_wipepack(aTHX_ a,b)
+#endif
+#ifdef PERL_CORE
+#define magic_push(a,b,c,d)	Perl_magic_push(aTHX_ a,b,c,d)
+#define magic_pop(a,b)		Perl_magic_pop(aTHX_ a,b)
+#define magic_unshift(a,b,c,d)	Perl_magic_unshift(aTHX_ a,b,c,d)
+#define magic_shift(a,b)	Perl_magic_shift(aTHX_ a,b)
+#define magic_extend(a,b,c)	Perl_magic_extend(aTHX_ a,b,c)
+#define magic_exists(a,b,c)	Perl_magic_exists(aTHX_ a,b,c)
+#define magic_delete(a,b,c)	Perl_magic_delete(aTHX_ a,b,c)
+#define magic_fill(a,b,c)	Perl_magic_fill(aTHX_ a,b,c)
 #endif
 #define markstack_grow()	Perl_markstack_grow(aTHX)
 #if defined(USE_LOCALE_COLLATE)
