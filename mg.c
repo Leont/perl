@@ -1755,6 +1755,46 @@ Perl_magic_wipepack(pTHX_ SV *sv, MAGIC *mg)
     return 0;
 }
 
+int Perl_magic_push(pTHX_ AV* av, SV** values, I32 count, MAGIC* magic) {
+    PERL_ARGS_ASSERT_MAGIC_PUSH;
+	return 0;
+}
+
+SV* Perl_magic_pop(aTHX_ AV* av, MAGIC *mg) {
+    PERL_ARGS_ASSERT_MAGIC_POP;
+	return NULL;
+}
+
+int Perl_magic_unshift(pTHX_ AV* av, SV** values, I32 count, MAGIC* magic) {
+    PERL_ARGS_ASSERT_MAGIC_UNSHIFT;
+	return 0;
+}
+
+SV* Perl_magic_shift(aTHX_ AV* av, MAGIC *mg) {
+    PERL_ARGS_ASSERT_MAGIC_SHIFT;
+	return NULL;
+}
+
+int Perl_magic_extend(aTHX_ AV* av, I32 count, MAGIC* mg) {
+    PERL_ARGS_ASSERT_MAGIC_EXTEND;
+	return 0;
+}
+
+int Perl_magic_exists(aTHX_ AV* av, I32 count, MAGIC* mg) {
+    PERL_ARGS_ASSERT_MAGIC_EXISTS;
+	return 0;
+}
+
+int Perl_magic_delete(aTHX_ AV* av, I32 count, MAGIC* mg) {
+    PERL_ARGS_ASSERT_MAGIC_DELETE;
+	return 0;
+}
+
+int Perl_magic_fill(aTHX_ AV* av, I32 count, MAGIC* mg) {
+    PERL_ARGS_ASSERT_MAGIC_FILL;
+	return 0;
+}
+
 int
 Perl_magic_nextpack(pTHX_ SV *sv, MAGIC *mg, SV *key)
 {
