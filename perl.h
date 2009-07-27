@@ -4894,11 +4894,13 @@ START_EXTERN_C
 
 #ifdef DOINIT
 #  define MGVTBL_SET(var,a,b,c,d,e,f,g,h) EXT_MGVTBL var = {a,b,c,d,e,f,g,h}
+#  define MGVTBL_SET_BIG(var,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q) EXT_MGVTBL var = {a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q}
 /* Like MGVTBL_SET but with the get magic having a const MG* */
 #  define MGVTBL_SET_CONST_MAGIC_GET(var,a,b,c,d,e,f,g,h) EXT_MGVTBL var \
     = {(int (*)(pTHX_ SV *, MAGIC *))a,b,c,d,e,f,g,h}
 #else
 #  define MGVTBL_SET(var,a,b,c,d,e,f,g,h) EXT_MGVTBL var
+#  define MGVTBL_SET_BIG(var,a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q) EXT_MGVTBL var
 #  define MGVTBL_SET_CONST_MAGIC_GET(var,a,b,c,d,e,f,g,h) EXT_MGVTBL var
 #endif
 
@@ -4983,7 +4985,7 @@ MGVTBL_SET(
 );
 #endif
 
-MGVTBL_SET(
+MGVTBL_SET_BIG(
     PL_vtbl_pack,
     0,
     0,
@@ -4992,7 +4994,16 @@ MGVTBL_SET(
     0,
     0,
     0,
-    0
+    0,
+	MEMBER_TO_FPTR(Perl_magic_push),
+	MEMBER_TO_FPTR(Perl_magic_pop),
+	MEMBER_TO_FPTR(Perl_magic_unshift),
+	MEMBER_TO_FPTR(Perl_magic_shift),
+	MEMBER_TO_FPTR(Perl_magic_extend),
+	MEMBER_TO_FPTR(Perl_magic_exists),
+	MEMBER_TO_FPTR(Perl_magic_delete),
+	MEMBER_TO_FPTR(Perl_magic_fill),
+
 );
 
 MGVTBL_SET(
