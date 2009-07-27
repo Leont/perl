@@ -1755,14 +1755,46 @@ Perl_magic_wipepack(pTHX_ SV *sv, MAGIC *mg)
     return 0;
 }
 
-int Perl_magic_push(pTHX_ AV* av, SV** values, I32 count, MAGIC* magic) {
+int Perl_magic_push(pTHX_ AV* av, SV** values, I32 count, MAGIC* mg) {
+    dSP;
+    int i;
+
     PERL_ARGS_ASSERT_MAGIC_PUSH;
-	return 0;
+
+    ENTER;
+    PUSHSTACKi(PERLSI_MAGIC);
+    PUSHMARK(SP);
+    EXTEND(SP,2);
+    PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
+    for (i = 0; i < count; ++i) {
+	PUSHs(values[i]);
+    }
+    PUTBACK;
+    call_method("PUSH", G_SCALAR|G_DISCARD);
+    POPSTACK;
+    LEAVE;
+    return 0;
 }
 
 SV* Perl_magic_pop(aTHX_ AV* av, MAGIC *mg) {
+    dSP;
+
     PERL_ARGS_ASSERT_MAGIC_POP;
-	return NULL;
+
+    SV *retval;
+    PUSHSTACKi(PERLSI_MAGIC);
+    PUSHMARK(SP);
+    XPUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
+    PUTBACK;
+    ENTER;
+    if (call_method("POP", G_SCALAR)) {
+	retval = newSVsv(*PL_stack_sp--);    
+    } else {    
+	retval = &PL_sv_undef;
+    }
+    LEAVE;
+    POPSTACK;
+    return retval;
 }
 
 int Perl_magic_unshift(pTHX_ AV* av, SV** values, I32 count, MAGIC* magic) {
@@ -1771,13 +1803,44 @@ int Perl_magic_unshift(pTHX_ AV* av, SV** values, I32 count, MAGIC* magic) {
 }
 
 SV* Perl_magic_shift(aTHX_ AV* av, MAGIC *mg) {
+    dSP;
+    SV *retval;
+
     PERL_ARGS_ASSERT_MAGIC_SHIFT;
-	return NULL;
+
+    PUSHSTACKi(PERLSI_MAGIC);
+    PUSHMARK(SP);
+    XPUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
+    PUTBACK;
+    ENTER;
+    if (call_method("SHIFT", G_SCALAR)) {
+	retval = newSVsv(*PL_stack_sp--);            
+    } else {    
+	retval = &PL_sv_undef;
+    }     
+    LEAVE;
+    POPSTACK;
+    return retval;
 }
 
 int Perl_magic_extend(aTHX_ AV* av, I32 count, MAGIC* mg) {
+    dSP;
+
     PERL_ARGS_ASSERT_MAGIC_EXTEND;
-	return 0;
+
+    ENTER;
+    SAVETMPS;
+    PUSHSTACKi(PERLSI_MAGIC);
+    PUSHMARK(SP);
+    EXTEND(SP,2);
+    PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
+    mPUSHi(count + 1);
+    PUTBACK;
+    call_method("EXTEND", G_SCALAR|G_DISCARD);
+    POPSTACK;
+    FREETMPS;
+    LEAVE;
+    return 0;
 }
 
 int Perl_magic_exists(aTHX_ AV* av, I32 count, MAGIC* mg) {
@@ -1791,8 +1854,23 @@ int Perl_magic_delete(aTHX_ AV* av, I32 count, MAGIC* mg) {
 }
 
 int Perl_magic_fill(aTHX_ AV* av, I32 count, MAGIC* mg) {
+    dSP;
+
     PERL_ARGS_ASSERT_MAGIC_FILL;
-	return 0;
+
+    ENTER;
+    SAVETMPS;
+    PUSHSTACKi(PERLSI_MAGIC);
+    PUSHMARK(SP);
+    EXTEND(SP,2);
+    PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
+    mPUSHi(count);
+    PUTBACK;
+    call_method("STORESIZE", G_SCALAR|G_DISCARD);
+    POPSTACK;
+    FREETMPS;
+    LEAVE;
+    return 0;
 }
 
 int

@@ -4533,16 +4533,10 @@ PP(pp_push)
 {
     dVAR; dSP; dMARK; dORIGMARK; dTARGET;
     register AV * const ary = MUTABLE_AV(*++MARK);
-    const MAGIC * const mg = get_array_magic(ary);
+    MAGIC * const mg = get_array_magic(ary);
 
-    if (mg) {
-	*MARK-- = SvTIED_obj(MUTABLE_SV(ary), mg);
-	PUSHMARK(MARK);
-	PUTBACK;
-	ENTER;
-	call_method("PUSH",G_SCALAR|G_DISCARD);
-	LEAVE;
-	SPAGAIN;
+    if (mg && mg->mg_virtual->avt_push) {
+	CALL_FPTR(mg->mg_virtual->avt_push)(ary, MARK + 1, (SP - MARK), mg);
 	SP = ORIGMARK;
 	if (GIMME_V != G_VOID) {
 	    PUSHi( AvFILL(ary) + 1 );

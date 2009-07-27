@@ -72,24 +72,9 @@ Perl_av_extend(pTHX_ AV *av, I32 key)
     PERL_ARGS_ASSERT_AV_EXTEND;
     assert(SvTYPE(av) == SVt_PVAV);
 
-    mg = get_array_magic(av);
-    if (mg) {
-	dSP;
-	ENTER;
-	SAVETMPS;
-	PUSHSTACKi(PERLSI_MAGIC);
-	PUSHMARK(SP);
-	EXTEND(SP,2);
-	PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
-	mPUSHi(key + 1);
-        PUTBACK;
-	call_method("EXTEND", G_SCALAR|G_DISCARD);
-	POPSTACK;
-	FREETMPS;
-	LEAVE;
-	return;
-    }
-    if (key > AvMAX(av)) {
+    if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_extend)
+	CALL_FPTR(mg->mg_virtual->avt_extend)(av, key, mg);
+    else if (key > AvMAX(av)) {
 	SV** ary;
 	I32 tmp;
 	I32 newmax;
@@ -556,21 +541,10 @@ Perl_av_push(pTHX_ register AV *av, SV *val)
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
 
-    if ((mg = get_array_magic(av))) {
-	dSP;
-	PUSHSTACKi(PERLSI_MAGIC);
-	PUSHMARK(SP);
-	EXTEND(SP,2);
-	PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
-	PUSHs(val);
-	PUTBACK;
-	ENTER;
-	call_method("PUSH", G_SCALAR|G_DISCARD);
-	LEAVE;
-	POPSTACK;
-	return;
-    }
-    av_store(av,AvFILLp(av)+1,val);
+    if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_push)
+	CALL_FPTR(mg->mg_virtual->avt_push)(av, &val, 1, mg);
+    else 
+	av_store(av,AvFILLp(av)+1,val);
 }
 
 /*
@@ -594,21 +568,8 @@ Perl_av_pop(pTHX_ register AV *av)
 
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
-    if ((mg = get_array_magic(av))) {
-	dSP;    
-	PUSHSTACKi(PERLSI_MAGIC);
-	PUSHMARK(SP);
-	XPUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
-	PUTBACK;
-	ENTER;
-	if (call_method("POP", G_SCALAR)) {
-	    retval = newSVsv(*PL_stack_sp--);    
-	} else {    
-	    retval = &PL_sv_undef;
-	}
-	LEAVE;
-	POPSTACK;
-	return retval;
+    if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_pop) {
+	return CALL_FPTR(mg->mg_virtual->avt_pop)(av, mg);
     }
     if (AvFILL(av) < 0)
 	return &PL_sv_undef;
@@ -736,21 +697,8 @@ Perl_av_shift(pTHX_ register AV *av)
 
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
-    if ((mg = get_array_magic(av))) {
-	dSP;
-	PUSHSTACKi(PERLSI_MAGIC);
-	PUSHMARK(SP);
-	XPUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
-	PUTBACK;
-	ENTER;
-	if (call_method("SHIFT", G_SCALAR)) {
-	    retval = newSVsv(*PL_stack_sp--);            
-	} else {    
-	    retval = &PL_sv_undef;
-	}     
-	LEAVE;
-	POPSTACK;
-	return retval;
+    if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_shift) {
+	return CALL_FPTR(mg->mg_virtual->avt_shift)(av, mg);
     }
     if (AvFILL(av) < 0)
       return &PL_sv_undef;
@@ -808,23 +756,10 @@ Perl_av_fill(pTHX_ register AV *av, I32 fill)
 
     if (fill < 0)
 	fill = -1;
-    if ((mg = get_array_magic(av))) {
-	dSP;            
-	ENTER;
-	SAVETMPS;
-	PUSHSTACKi(PERLSI_MAGIC);
-	PUSHMARK(SP);
-	EXTEND(SP,2);
-	PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
-	mPUSHi(fill + 1);
-	PUTBACK;
-	call_method("STORESIZE", G_SCALAR|G_DISCARD);
-	POPSTACK;
-	FREETMPS;
-	LEAVE;
-	return;
+    if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_fill) {
+	CALL_FPTR(mg->mg_virtual->avt_fill)(av, fill + 1, mg);
     }
-    if (fill <= AvMAX(av)) {
+    else if (fill <= AvMAX(av)) {
 	I32 key = AvFILLp(av);
 	SV** const ary = AvARRAY(av);
 
