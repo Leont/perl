@@ -1788,7 +1788,7 @@ PERL_CALLCONV int	Perl_magic_wipepack(pTHX_ SV* sv, MAGIC* mg)
 #define PERL_ARGS_ASSERT_MAGIC_WIPEPACK	\
 	assert(sv); assert(mg)
 
-PERL_CALLCONV int	Perl_magic_push(pTHX_ AV* av, SV** values, I32 count, MAGIC* mg)
+PERL_CALLCONV void	Perl_magic_push(pTHX_ AV* av, SV** values, IV count, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_2)
 			__attribute__nonnull__(pTHX_4);
@@ -1801,12 +1801,11 @@ PERL_CALLCONV SV*	Perl_magic_pop(pTHX_ AV* av, MAGIC* mg)
 #define PERL_ARGS_ASSERT_MAGIC_POP	\
 	assert(av); assert(mg)
 
-PERL_CALLCONV int	Perl_magic_unshift(pTHX_ AV* av, SV** values, I32 count, MAGIC* mg)
+PERL_CALLCONV void	Perl_magic_unshift(pTHX_ AV* av, SV** values, IV count, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
-			__attribute__nonnull__(pTHX_2)
 			__attribute__nonnull__(pTHX_4);
 #define PERL_ARGS_ASSERT_MAGIC_UNSHIFT	\
-	assert(av); assert(values); assert(mg)
+	assert(av); assert(mg)
 
 PERL_CALLCONV SV*	Perl_magic_shift(pTHX_ AV* av, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
@@ -1814,25 +1813,25 @@ PERL_CALLCONV SV*	Perl_magic_shift(pTHX_ AV* av, MAGIC* mg)
 #define PERL_ARGS_ASSERT_MAGIC_SHIFT	\
 	assert(av); assert(mg)
 
-PERL_CALLCONV int	Perl_magic_extend(pTHX_ AV* av, I32 count, MAGIC* mg)
+PERL_CALLCONV void	Perl_magic_extend(pTHX_ AV* av, IV count, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_3);
 #define PERL_ARGS_ASSERT_MAGIC_EXTEND	\
 	assert(av); assert(mg)
 
-PERL_CALLCONV int	Perl_magic_exists(pTHX_ AV* av, I32 index, MAGIC* mg)
+PERL_CALLCONV void	Perl_magic_exists(pTHX_ AV* av, IV index, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_3);
 #define PERL_ARGS_ASSERT_MAGIC_EXISTS	\
 	assert(av); assert(mg)
 
-PERL_CALLCONV int	Perl_magic_delete(pTHX_ AV* av, I32 index, MAGIC* mg)
+PERL_CALLCONV void	Perl_magic_delete(pTHX_ AV* av, IV index, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_3);
 #define PERL_ARGS_ASSERT_MAGIC_DELETE	\
 	assert(av); assert(mg)
 
-PERL_CALLCONV int	Perl_magic_fill(pTHX_ AV* av, I32 count, MAGIC* mg)
+PERL_CALLCONV void	Perl_magic_fill(pTHX_ AV* av, IV count, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_3);
 #define PERL_ARGS_ASSERT_MAGIC_FILL	\

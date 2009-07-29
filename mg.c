@@ -1755,7 +1755,7 @@ Perl_magic_wipepack(pTHX_ SV *sv, MAGIC *mg)
     return 0;
 }
 
-int Perl_magic_push(pTHX_ AV* av, SV** values, I32 count, MAGIC* mg) {
+void Perl_magic_push(pTHX_ AV* av, SV** values, IV count, MAGIC* mg) {
     dSP;
     int i;
 
@@ -1773,10 +1773,9 @@ int Perl_magic_push(pTHX_ AV* av, SV** values, I32 count, MAGIC* mg) {
     call_method("PUSH", G_SCALAR|G_DISCARD);
     POPSTACK;
     LEAVE;
-    return 0;
 }
 
-SV* Perl_magic_pop(aTHX_ AV* av, MAGIC *mg) {
+SV* Perl_magic_pop(pTHX_ AV* av, MAGIC *mg) {
     dSP;
 
     PERL_ARGS_ASSERT_MAGIC_POP;
@@ -1797,12 +1796,11 @@ SV* Perl_magic_pop(aTHX_ AV* av, MAGIC *mg) {
     return retval;
 }
 
-int Perl_magic_unshift(pTHX_ AV* av, SV** values, I32 count, MAGIC* magic) {
+void Perl_magic_unshift(pTHX_ AV* av, SV** values, IV count, MAGIC* magic) {
     PERL_ARGS_ASSERT_MAGIC_UNSHIFT;
-	return 0;
 }
 
-SV* Perl_magic_shift(aTHX_ AV* av, MAGIC *mg) {
+SV* Perl_magic_shift(pTHX_ AV* av, MAGIC *mg) {
     dSP;
     SV *retval;
 
@@ -1823,7 +1821,7 @@ SV* Perl_magic_shift(aTHX_ AV* av, MAGIC *mg) {
     return retval;
 }
 
-int Perl_magic_extend(aTHX_ AV* av, I32 count, MAGIC* mg) {
+void Perl_magic_extend(pTHX_ AV* av, IV count, MAGIC* mg) {
     dSP;
 
     PERL_ARGS_ASSERT_MAGIC_EXTEND;
@@ -1840,20 +1838,17 @@ int Perl_magic_extend(aTHX_ AV* av, I32 count, MAGIC* mg) {
     POPSTACK;
     FREETMPS;
     LEAVE;
-    return 0;
 }
 
-int Perl_magic_exists(aTHX_ AV* av, I32 count, MAGIC* mg) {
+void Perl_magic_exists(pTHX_ AV* av, IV count, MAGIC* mg) {
     PERL_ARGS_ASSERT_MAGIC_EXISTS;
-	return 0;
 }
 
-int Perl_magic_delete(aTHX_ AV* av, I32 count, MAGIC* mg) {
+void Perl_magic_delete(pTHX_ AV* av, IV count, MAGIC* mg) {
     PERL_ARGS_ASSERT_MAGIC_DELETE;
-	return 0;
 }
 
-int Perl_magic_fill(aTHX_ AV* av, I32 count, MAGIC* mg) {
+void Perl_magic_fill(pTHX_ AV* av, IV count, MAGIC* mg) {
     dSP;
 
     PERL_ARGS_ASSERT_MAGIC_FILL;
@@ -1870,7 +1865,6 @@ int Perl_magic_fill(aTHX_ AV* av, I32 count, MAGIC* mg) {
     POPSTACK;
     FREETMPS;
     LEAVE;
-    return 0;
 }
 
 int
