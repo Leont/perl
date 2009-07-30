@@ -626,19 +626,7 @@ Perl_av_unshift(pTHX_ register AV *av, register I32 num)
 	Perl_croak(aTHX_ "%s", PL_no_modify);
 
     if ((mg = get_array_magic(av))) {
-	dSP;
-	PUSHSTACKi(PERLSI_MAGIC);
-	PUSHMARK(SP);
-	EXTEND(SP,1+num);
-	PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
-	while (num-- > 0) {
-	    PUSHs(&PL_sv_undef);
-	}
-	PUTBACK;
-	ENTER;
-	call_method("UNSHIFT", G_SCALAR|G_DISCARD);
-	LEAVE;
-	POPSTACK;
+	CALL_FPTR(mg->mg_virtual->avt_push)(av, NULL, num, mg);
 	return;
     }
 

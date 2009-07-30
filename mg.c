@@ -1796,8 +1796,30 @@ SV* Perl_magic_pop(pTHX_ AV* av, MAGIC *mg) {
     return retval;
 }
 
-void Perl_magic_unshift(pTHX_ AV* av, SV** values, IV count, MAGIC* magic) {
+void Perl_magic_unshift(pTHX_ AV* av, SV** values, IV count, MAGIC* mg) {
+    dSP;
+    int i;
+
     PERL_ARGS_ASSERT_MAGIC_UNSHIFT;
+
+    ENTER;
+    PUSHMARK(SP);
+    EXTEND(SP, 1 + count);
+    PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
+    if (values != NULL) {
+	for(i = 0; i < count; ++i) {
+	    PUSHs(values[i]);
+	}
+    }
+    else {
+	for(i = 0; i < count; ++i) {
+	    PUSHs(&PL_sv_undef);
+	}
+    }
+    PUTBACK;
+    call_method("UNSHIFT",G_SCALAR|G_DISCARD);
+    SPAGAIN;
+    LEAVE;
 }
 
 SV* Perl_magic_shift(pTHX_ AV* av, MAGIC *mg) {

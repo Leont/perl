@@ -4578,17 +4578,10 @@ PP(pp_unshift)
 {
     dVAR; dSP; dMARK; dORIGMARK; dTARGET;
     register AV *ary = MUTABLE_AV(*++MARK);
-    const MAGIC * const mg = get_array_magic(ary);
+    MAGIC * const mg = get_array_magic(ary);
 
-    if (mg) {
-	*MARK-- = SvTIED_obj(MUTABLE_SV(ary), mg);
-	PUSHMARK(MARK);
-	PUTBACK;
-	ENTER;
-	call_method("UNSHIFT",G_SCALAR|G_DISCARD);
-	LEAVE;
-	SPAGAIN;
-    }
+    if (mg && mg->mg_virtual->avt_unshift)
+	CALL_FPTR(mg->mg_virtual->avt_unshift)(ary, MARK + 1, (SP - MARK), mg);
     else {
 	register I32 i = 0;
 	av_unshift(ary, SP - MARK);
