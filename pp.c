@@ -4536,7 +4536,7 @@ PP(pp_push)
     MAGIC * const mg = get_array_magic(ary);
 
     if (mg && mg->mg_virtual->avt_push) {
-	CALL_FPTR(mg->mg_virtual->avt_push)(ary, MARK + 1, (SP - MARK), mg);
+	CALL_FPTR(mg->mg_virtual->avt_push)(aTHX_ ary, MARK + 1, (SP - MARK), mg);
 	SP = ORIGMARK;
 	if (GIMME_V != G_VOID) {
 	    PUSHi( AvFILL(ary) + 1 );
@@ -4581,7 +4581,7 @@ PP(pp_unshift)
     MAGIC * const mg = get_array_magic(ary);
 
     if (mg && mg->mg_virtual->avt_unshift)
-	CALL_FPTR(mg->mg_virtual->avt_unshift)(ary, MARK + 1, (SP - MARK), mg);
+	CALL_FPTR(mg->mg_virtual->avt_unshift)(aTHX_ ary, MARK + 1, (SP - MARK), mg);
     else {
 	register I32 i = 0;
 	av_unshift(ary, SP - MARK);

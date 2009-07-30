@@ -73,7 +73,7 @@ Perl_av_extend(pTHX_ AV *av, I32 key)
     assert(SvTYPE(av) == SVt_PVAV);
 
     if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_extend)
-	CALL_FPTR(mg->mg_virtual->avt_extend)(av, key, mg);
+	CALL_FPTR(mg->mg_virtual->avt_extend)(aTHX_ av, key, mg);
     else if (key > AvMAX(av)) {
 	SV** ary;
 	I32 tmp;
@@ -542,7 +542,7 @@ Perl_av_push(pTHX_ register AV *av, SV *val)
 	Perl_croak(aTHX_ "%s", PL_no_modify);
 
     if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_push)
-	CALL_FPTR(mg->mg_virtual->avt_push)(av, &val, 1, mg);
+	CALL_FPTR(mg->mg_virtual->avt_push)(aTHX_ av, &val, 1, mg);
     else 
 	av_store(av,AvFILLp(av)+1,val);
 }
@@ -569,7 +569,7 @@ Perl_av_pop(pTHX_ register AV *av)
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
     if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_pop) {
-	return CALL_FPTR(mg->mg_virtual->avt_pop)(av, mg);
+	return CALL_FPTR(mg->mg_virtual->avt_pop)(aTHX_ av, mg);
     }
     if (AvFILL(av) < 0)
 	return &PL_sv_undef;
@@ -626,7 +626,7 @@ Perl_av_unshift(pTHX_ register AV *av, register I32 num)
 	Perl_croak(aTHX_ "%s", PL_no_modify);
 
     if ((mg = get_array_magic(av))) {
-	CALL_FPTR(mg->mg_virtual->avt_push)(av, NULL, num, mg);
+	CALL_FPTR(mg->mg_virtual->avt_push)(aTHX_ av, NULL, num, mg);
 	return;
     }
 
@@ -686,7 +686,7 @@ Perl_av_shift(pTHX_ register AV *av)
     if (SvREADONLY(av))
 	Perl_croak(aTHX_ "%s", PL_no_modify);
     if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_shift) {
-	return CALL_FPTR(mg->mg_virtual->avt_shift)(av, mg);
+	return CALL_FPTR(mg->mg_virtual->avt_shift)(aTHX_ av, mg);
     }
     if (AvFILL(av) < 0)
       return &PL_sv_undef;
@@ -745,7 +745,7 @@ Perl_av_fill(pTHX_ register AV *av, I32 fill)
     if (fill < 0)
 	fill = -1;
     if ((mg = get_array_magic(av)) && mg->mg_virtual->avt_fill) {
-	CALL_FPTR(mg->mg_virtual->avt_fill)(av, fill + 1, mg);
+	CALL_FPTR(mg->mg_virtual->avt_fill)(aTHX_ av, fill + 1, mg);
     }
     else if (fill <= AvMAX(av)) {
 	I32 key = AvFILLp(av);
