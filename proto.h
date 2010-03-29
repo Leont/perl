@@ -1788,6 +1788,12 @@ PERL_CALLCONV int	Perl_magic_wipepack(pTHX_ SV* sv, MAGIC* mg)
 #define PERL_ARGS_ASSERT_MAGIC_WIPEPACK	\
 	assert(sv); assert(mg)
 
+PERL_CALLCONV bool	Perl_magic_adjustindex(pTHX_ AV* av, MAGIC* mg)
+			__attribute__nonnull__(pTHX_1)
+			__attribute__nonnull__(pTHX_2);
+#define PERL_ARGS_ASSERT_MAGIC_ADJUSTINDEX	\
+	assert(av); assert(mg)
+
 PERL_CALLCONV void	Perl_magic_push(pTHX_ AV* av, SV** values, IV count, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_2)
@@ -1819,13 +1825,13 @@ PERL_CALLCONV void	Perl_magic_extend(pTHX_ AV* av, IV count, MAGIC* mg)
 #define PERL_ARGS_ASSERT_MAGIC_EXTEND	\
 	assert(av); assert(mg)
 
-PERL_CALLCONV void	Perl_magic_exists(pTHX_ AV* av, IV index, MAGIC* mg)
+PERL_CALLCONV bool	Perl_magic_exists(pTHX_ AV* av, IV index, MAGIC* mg)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_3);
 #define PERL_ARGS_ASSERT_MAGIC_EXISTS	\
 	assert(av); assert(mg)
 
-PERL_CALLCONV void	Perl_magic_delete(pTHX_ AV* av, IV index, MAGIC* mg)
+PERL_CALLCONV SV*	Perl_magic_delete(pTHX_ AV* av, IV index, MAGIC* mg, I32 flags)
 			__attribute__nonnull__(pTHX_1)
 			__attribute__nonnull__(pTHX_3);
 #define PERL_ARGS_ASSERT_MAGIC_DELETE	\

@@ -22,14 +22,15 @@ struct mgvtbl {
     int		(CPERLscope(*svt_dup))	(pTHX_ MAGIC *mg, CLONE_PARAMS *param);
     int		(CPERLscope(*svt_local))(pTHX_ SV *nsv, MAGIC *mg);
 
-    int		(CPERLscope(*avt_push))    (pTHX_ AV *av, SV** value, I32 count, MAGIC* mg);
+    bool	(CPERLscope(*avt_adjustindex))(pTHX_ AV*,  MAGIC* mg);
+    void	(CPERLscope(*avt_push))    (pTHX_ AV *av, SV** value, I32 count, MAGIC* mg);
     SV*		(CPERLscope(*avt_pop))     (pTHX_ AV *av, MAGIC* mg);
-    int		(CPERLscope(*avt_unshift)) (pTHX_ AV *av, SV** value, I32 count, MAGIC* mg);
+    void	(CPERLscope(*avt_unshift)) (pTHX_ AV *av, SV** value, I32 count, MAGIC* mg);
     SV*		(CPERLscope(*avt_shift))   (pTHX_ AV *av, MAGIC* mg);
-    int		(CPERLscope(*avt_extend))  (pTHX_ AV *av, I32 count, MAGIC* mg);
-    int		(CPERLscope(*avt_exists))  (pTHX_ AV *av, I32 index, MAGIC* mg);
-    int		(CPERLscope(*avt_delete))  (pTHX_ AV *av, I32 index, MAGIC* mg);
-    int		(CPERLscope(*avt_fill))    (pTHX_ AV *av, I32 count, MAGIC* mg);
+    void	(CPERLscope(*avt_extend))  (pTHX_ AV *av, I32 count, MAGIC* mg);
+    bool	(CPERLscope(*avt_exists))  (pTHX_ AV *av, I32 index, MAGIC* mg);
+    SV*		(CPERLscope(*avt_delete))  (pTHX_ AV *av, I32 index, MAGIC* mg, I32 flags);
+    void	(CPERLscope(*avt_fill))    (pTHX_ AV *av, I32 count, MAGIC* mg);
 };
 #endif
 
@@ -44,14 +45,14 @@ struct magic {
     char*	mg_ptr;
 };
 
-#define MGf_TAINTEDDIR 1        /* PERL_MAGIC_envelem only */
-#define MGf_MINMATCH   1        /* PERL_MAGIC_regex_global only */
-#define MGf_REFCOUNTED 2
-#define MGf_GSKIP      4
-#define MGf_COPY       8	/* has an svt_copy  MGVTBL entry */
-#define MGf_DUP     0x10 	/* has an svt_dup   MGVTBL entry */
-#define MGf_LOCAL   0x20	/* has an svt_local MGVTBL entry */
-#define MGf_ARRAY   0x40    /* has one or more of the avt_* MGVTBL entries */
+#define MGf_TAINTEDDIR  1        /* PERL_MAGIC_envelem only */
+#define MGf_MINMATCH    1        /* PERL_MAGIC_regex_global only */
+#define MGf_REFCOUNTED  2
+#define MGf_GSKIP       4
+#define MGf_COPY        8	/* has an svt_copy  MGVTBL entry */
+#define MGf_DUP      0x10 	/* has an svt_dup   MGVTBL entry */
+#define MGf_LOCAL    0x20	/* has an svt_local MGVTBL entry */
+#define MGf_ARRAY    0x40	/* has active array magic */
 
 #define MgTAINTEDDIR(mg)	(mg->mg_flags & MGf_TAINTEDDIR)
 #define MgTAINTEDDIR_on(mg)	(mg->mg_flags |= MGf_TAINTEDDIR)

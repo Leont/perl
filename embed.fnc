@@ -579,13 +579,14 @@ p	|int	|magic_setutf8	|NN SV* sv|NN MAGIC* mg
 p	|int	|magic_set_all_env|NN SV* sv|NN MAGIC* mg
 p	|U32	|magic_sizepack	|NN SV* sv|NN MAGIC* mg
 p	|int	|magic_wipepack	|NN SV* sv|NN MAGIC* mg
+p	|bool	|magic_adjustindex	|NN AV* av|NN MAGIC* mg
 p	|void	|magic_push	|NN AV* av|NN SV** values|IV count|NN MAGIC* mg
 p	|SV*	|magic_pop	|NN AV* av|NN MAGIC* mg
 p	|void	|magic_unshift	|NN AV* av|NULLOK SV** values|IV count|NN MAGIC* mg
 p	|SV*	|magic_shift	|NN AV* av|NN MAGIC* mg
 p	|void	|magic_extend	|NN AV* av|IV count|NN MAGIC* mg
-p	|void	|magic_exists	|NN AV* av|IV index|NN MAGIC* mg
-p	|void	|magic_delete	|NN AV* av|IV index|NN MAGIC* mg
+p	|bool	|magic_exists	|NN AV* av|IV index|NN MAGIC* mg
+p	|SV*	|magic_delete	|NN AV* av|IV index|NN MAGIC* mg|I32 flags
 p	|void	|magic_fill	|NN AV* av|IV count|NN MAGIC* mg
 
 Ap	|void	|markstack_grow

@@ -1677,7 +1677,6 @@ S_magic_methpack(pTHX_ SV *sv, const MAGIC *mg, const char *meth)
     LEAVE;
     return 0;
 }
-
 int
 Perl_magic_getpack(pTHX_ SV *sv, MAGIC *mg)
 {
@@ -1753,6 +1752,18 @@ Perl_magic_wipepack(pTHX_ SV *sv, MAGIC *mg)
     LEAVE;
 
     return 0;
+}
+
+bool Perl_magic_adjustindex(pTHX_ AV *av, MAGIC *mg) {
+    /* Handle negative array indices 20020222 MJD */
+    SV * const * const negative_indices_glob =
+    hv_fetch(SvSTASH(SvRV(SvTIED_obj(MUTABLE_SV(av),
+				     mg))),
+	    NEGATIVE_INDICES_VAR, 16, 0);
+
+    if (negative_indices_glob && SvTRUE(GvSV(*negative_indices_glob)))
+	return FALSE;
+    return TRUE;
 }
 
 void Perl_magic_push(pTHX_ AV* av, SV** values, IV count, MAGIC* mg) {
@@ -1862,12 +1873,48 @@ void Perl_magic_extend(pTHX_ AV* av, IV count, MAGIC* mg) {
     LEAVE;
 }
 
-void Perl_magic_exists(pTHX_ AV* av, IV count, MAGIC* mg) {
+bool Perl_magic_exists(pTHX_ AV* av, IV key, MAGIC* mg) {
+    bool ret;
+
     PERL_ARGS_ASSERT_MAGIC_EXISTS;
+    dSP;
+
+    ENTER;
+    SAVETMPS;
+    PUSHSTACKi(PERLSI_MAGIC);
+    PUSHMARK(SP);
+    EXTEND(SP,2);
+    PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
+    mPUSHi(key);
+    PUTBACK;
+    call_method("EXISTS", G_SCALAR);
+    SPAGAIN;
+    ret = SvTRUE(TOPs);
+    POPSTACK;
+    FREETMPS;
+    LEAVE;
+    return ret;
 }
 
-void Perl_magic_delete(pTHX_ AV* av, IV count, MAGIC* mg) {
+SV* Perl_magic_delete(pTHX_ AV* av, IV key, MAGIC* mg, I32 flags) {
     PERL_ARGS_ASSERT_MAGIC_DELETE;
+
+    dSP;
+    SV* ret;
+
+    ENTER;
+    PUSHSTACKi(PERLSI_MAGIC);
+    PUSHMARK(SP);
+    EXTEND(SP,2);
+    PUSHs(SvTIED_obj(MUTABLE_SV(av), mg));
+    mPUSHi(key);
+    PUTBACK;
+    call_method("DELETE", G_SCALAR | flags);
+    SPAGAIN;
+    ret = (flags & G_DISCARD) ? NULL : POPs;
+    POPSTACK;
+    LEAVE;
+    return ret;
 }
 
 void Perl_magic_fill(pTHX_ AV* av, IV count, MAGIC* mg) {
