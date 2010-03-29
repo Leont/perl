@@ -36,7 +36,7 @@ Perl_av_reify(pTHX_ AV *av)
 	return;
 #ifdef DEBUGGING
     if (get_array_magic(av) && ckWARN_d(WARN_DEBUGGING))
-	Perl_warner(aTHX_ packWARN(WARN_DEBUGGING), "av_reify called on tied array");
+	Perl_ck_warner_d(aTHX_ packWARN(WARN_DEBUGGING), "av_reify called on tied array");
 #endif
     key = AvMAX(av) + 1;
     while (key > AvFILLp(av) + 1)
@@ -377,8 +377,14 @@ Perl_av_make(pTHX_ register I32 size, register SV **strp)
 	AvFILLp(av) = AvMAX(av) = size - 1;
 	for (i = 0; i < size; i++) {
 	    assert (*strp);
+
+	    /* Don't let sv_setsv swipe, since our source array might
+	       have multiple references to the same temp scalar (e.g.
+	       from a list slice) */
+
 	    ary[i] = newSV(0);
-	    sv_setsv(ary[i], *strp);
+	    sv_setsv_flags(ary[i], *strp,
+			   SV_GMAGIC|SV_DO_COW_SVSETSV|SV_NOSTEAL);
 	    strp++;
 	}
     }
@@ -404,8 +410,8 @@ Perl_av_clear(pTHX_ register AV *av)
     assert(SvTYPE(av) == SVt_PVAV);
 
 #ifdef DEBUGGING
-    if (SvREFCNT(av) == 0 && ckWARN_d(WARN_DEBUGGING)) {
-	Perl_warner(aTHX_ packWARN(WARN_DEBUGGING), "Attempt to clear deleted array");
+    if (SvREFCNT(av) == 0) {
+	Perl_ck_warner_d(aTHX_ packWARN(WARN_DEBUGGING), "Attempt to clear deleted array");
     }
 #endif
 
@@ -512,7 +518,8 @@ Perl_get_array_magic(pTHX_ AV* av) {
 =for apidoc av_push
 
 Pushes an SV onto the end of the array.  The array will grow automatically
-to accommodate the addition.
+to accommodate the addition. Like C<av_store>, this takes ownership of one
+reference count.
 
 =cut
 */

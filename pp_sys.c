@@ -318,13 +318,13 @@ PP(pp_backtick)
 		NOOP;
 	}
 	else if (gimme == G_SCALAR) {
-	    ENTER;
+	    ENTER_with_name("backtick");
 	    SAVESPTR(PL_rs);
 	    PL_rs = &PL_sv_undef;
 	    sv_setpvs(TARG, "");	/* note that this preserves previous buffer */
 	    while (sv_gets(TARG, fp, SvCUR(TARG)) != NULL)
 		NOOP;
-	    LEAVE;
+	    LEAVE_with_name("backtick");
 	    XPUSHs(TARG);
 	    SvTAINTED_on(TARG);
 	}
@@ -364,7 +364,7 @@ PP(pp_glob)
      * without at the same time croaking, for some reason, or if
      * perl was built with PERL_EXTERNAL_GLOB */
 
-    ENTER;
+    ENTER_with_name("glob");
 
 #ifndef VMS
     if (PL_tainting) {
@@ -389,7 +389,7 @@ PP(pp_glob)
 #endif	/* !DOSISH */
 
     result = do_readline();
-    LEAVE;
+    LEAVE_with_name("glob");
     return result;
 }
 
@@ -497,6 +497,7 @@ PP(pp_die)
 	tmpsv = newSVpvs_flags("Died", SVs_TEMP);
 
     DIE(aTHX_ "%"SVf, SVfARG(tmpsv));
+    RETURN;
 }
 
 /* I/O. */
@@ -521,9 +522,10 @@ PP(pp_open)
 	MAGIC *mg;
 	IoFLAGS(GvIOp(gv)) &= ~IOf_UNTAINT;
 
-	if (IoDIRP(io) && ckWARN2(WARN_IO, WARN_DEPRECATED))
-	    Perl_warner(aTHX_ packWARN2(WARN_IO, WARN_DEPRECATED),
-		    "Opening dirhandle %s also as a file", GvENAME(gv));
+	if (IoDIRP(io))
+	    Perl_ck_warner_d(aTHX_ packWARN2(WARN_IO, WARN_DEPRECATED),
+			     "Opening dirhandle %s also as a file",
+			     GvENAME(gv));
 
 	mg = SvTIED_mg((const SV *)io, PERL_MAGIC_tiedscalar);
 	if (mg) {
@@ -532,9 +534,9 @@ PP(pp_open)
 	    *MARK-- = SvTIED_obj(MUTABLE_SV(io), mg);
 	    PUSHMARK(MARK);
 	    PUTBACK;
-	    ENTER;
+	    ENTER_with_name("call_OPEN");
 	    call_method("OPEN", G_SCALAR);
-	    LEAVE;
+	    LEAVE_with_name("call_OPEN");
 	    SPAGAIN;
 	    RETURN;
 	}
@@ -572,9 +574,9 @@ PP(pp_close)
 		PUSHMARK(SP);
 		XPUSHs(SvTIED_obj(MUTABLE_SV(io), mg));
 		PUTBACK;
-		ENTER;
+		ENTER_with_name("call_CLOSE");
 		call_method("CLOSE", G_SCALAR);
-		LEAVE;
+		LEAVE_with_name("call_CLOSE");
 		SPAGAIN;
 		RETURN;
 	    }
@@ -641,6 +643,7 @@ badexit:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_func, "pipe");
+    return NORMAL;
 #endif
 }
 
@@ -662,9 +665,9 @@ PP(pp_fileno)
 	PUSHMARK(SP);
 	XPUSHs(SvTIED_obj(MUTABLE_SV(io), mg));
 	PUTBACK;
-	ENTER;
+	ENTER_with_name("call_FILENO");
 	call_method("FILENO", G_SCALAR);
-	LEAVE;
+	LEAVE_with_name("call_FILENO");
 	SPAGAIN;
 	RETURN;
     }
@@ -737,9 +740,9 @@ PP(pp_binmode)
 	    if (discp)
 		XPUSHs(discp);
 	    PUTBACK;
-	    ENTER;
+	    ENTER_with_name("call_BINMODE");
 	    call_method("BINMODE", G_SCALAR);
-	    LEAVE;
+	    LEAVE_with_name("call_BINMODE");
 	    SPAGAIN;
 	    RETURN;
 	}
@@ -782,7 +785,7 @@ PP(pp_tie)
 {
     dVAR; dSP; dMARK;
     HV* stash;
-    GV *gv;
+    GV *gv = NULL;
     SV *sv;
     const I32 markoff = MARK - PL_stack_base;
     const char *methname;
@@ -817,7 +820,7 @@ PP(pp_tie)
     }
     items = SP - MARK++;
     if (sv_isobject(*MARK)) { /* Calls GET magic. */
-	ENTER;
+	ENTER_with_name("call_TIE");
 	PUSHSTACKi(PERLSI_MAGIC);
 	PUSHMARK(SP);
 	EXTEND(SP,(I32)items);
@@ -837,7 +840,7 @@ PP(pp_tie)
 	    DIE(aTHX_ "Can't locate object method \"%s\" via package \"%"SVf"\"",
 		 methname, SVfARG(SvOK(*MARK) ? *MARK : &PL_sv_no));
 	}
-	ENTER;
+	ENTER_with_name("call_TIE");
 	PUSHSTACKi(PERLSI_MAGIC);
 	PUSHMARK(SP);
 	EXTEND(SP,(I32)items);
@@ -861,7 +864,7 @@ PP(pp_tie)
 	sv_magic(varsv, (SvRV(sv) == varsv ? NULL : sv), how, NULL, 0);
 	SvMAGIC(varsv)->mg_flags |= MGf_ARRAY;
     }
-    LEAVE;
+    LEAVE_with_name("call_TIE");
     SP = PL_stack_base + markoff;
     PUSHs(sv);
     RETURN;
@@ -888,15 +891,15 @@ PP(pp_untie)
 	       XPUSHs(SvTIED_obj(MUTABLE_SV(gv), mg));
 	       mXPUSHi(SvREFCNT(obj) - 1);
 	       PUTBACK;
-	       ENTER;
+	       ENTER_with_name("call_UNTIE");
 	       call_sv(MUTABLE_SV(cv), G_VOID);
-	       LEAVE;
+	       LEAVE_with_name("call_UNTIE");
 	       SPAGAIN;
             }
-	    else if (mg && SvREFCNT(obj) > 1 && ckWARN(WARN_UNTIE)) {
-		  Perl_warner(aTHX_ packWARN(WARN_UNTIE),
-		      "untie attempted while %"UVuf" inner references still exist",
-		       (UV)SvREFCNT(obj) - 1 ) ;
+	    else if (mg && SvREFCNT(obj) > 1) {
+		Perl_ck_warner(aTHX_ packWARN(WARN_UNTIE),
+			       "untie attempted while %"UVuf" inner references still exist",
+			       (UV)SvREFCNT(obj) - 1 ) ;
 	    }
         }
     }
@@ -931,7 +934,7 @@ PP(pp_dbmopen)
     dVAR; dSP;
     dPOPPOPssrl;
     HV* stash;
-    GV *gv;
+    GV *gv = NULL;
 
     HV * const hv = MUTABLE_HV(POPs);
     SV * const sv = newSVpvs_flags("AnyDBM_File", SVs_TEMP);
@@ -1019,8 +1022,7 @@ PP(pp_sselect)
 		DIE(aTHX_ "%s", PL_no_modify);
 	}
 	if (!SvPOK(sv)) {
-	    if (ckWARN(WARN_MISC))
-                Perl_warner(aTHX_ packWARN(WARN_MISC), "Non-string passed as bitmask");
+	    Perl_ck_warner(aTHX_ packWARN(WARN_MISC), "Non-string passed as bitmask");
 	    SvPV_force_nolen(sv);	/* force string conversion */
 	}
 	j = SvCUR(sv);
@@ -1140,6 +1142,7 @@ PP(pp_sselect)
     RETURN;
 #else
     DIE(aTHX_ "select not implemented");
+    return NORMAL;
 #endif
 }
 
@@ -1159,8 +1162,7 @@ Perl_setdefout(pTHX_ GV *gv)
 {
     dVAR;
     SvREFCNT_inc_simple_void(gv);
-    if (PL_defoutgv)
-	SvREFCNT_dec(PL_defoutgv);
+    SvREFCNT_dec(PL_defoutgv);
     PL_defoutgv = gv;
 }
 
@@ -1270,8 +1272,8 @@ PP(pp_enterwrite)
     register GV *gv;
     register IO *io;
     GV *fgv;
-    CV *cv;
-    SV * tmpsv = NULL;
+    CV *cv = NULL;
+    SV *tmpsv = NULL;
 
     if (MAXARG == 0)
 	gv = PL_defoutgv;
@@ -1418,8 +1420,7 @@ PP(pp_leavewrite)
     }
     else {
 	if ((IoLINES_LEFT(io) -= FmLINES(PL_formtarget)) < 0) {
-	    if (ckWARN(WARN_IO))
-		Perl_warner(aTHX_ packWARN(WARN_IO), "page overflow");
+	    Perl_ck_warner(aTHX_ packWARN(WARN_IO), "page overflow");
 	}
 	if (!do_print(PL_formtarget, fp))
 	    PUSHs(&PL_sv_no);
@@ -1920,7 +1921,7 @@ PP(pp_send)
 		    DIE(aTHX_ "Offset outside string");
 		}
 		offset += blen_chars;
-	    } else if (offset >= (IV)blen_chars && blen_chars > 0) {
+	    } else if (offset > (IV)blen_chars) {
 		Safefree(tmpbuf);
 		DIE(aTHX_ "Offset outside string");
 	    }
@@ -2090,6 +2091,12 @@ PP(pp_tell)
 	    SPAGAIN;
 	    RETURN;
 	}
+    }
+    else if (!gv) {
+	if (!errno)
+	    SETERRNO(EBADF,RMS_IFI);
+	PUSHi(-1);
+	RETURN;
     }
 
 #if LSEEKSIZE > IVSIZE
@@ -2354,6 +2361,7 @@ PP(pp_flock)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "flock()");
+    return NORMAL;
 #endif
 }
 
@@ -2406,6 +2414,7 @@ PP(pp_socket)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "socket");
+    return NORMAL;
 #endif
 }
 
@@ -2467,6 +2476,7 @@ PP(pp_sockpair)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "socketpair");
+    return NORMAL;
 #endif
 }
 
@@ -2498,6 +2508,7 @@ nuts:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_sock_func, "bind");
+    return NORMAL;
 #endif
 }
 
@@ -2528,6 +2539,7 @@ nuts:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_sock_func, "connect");
+    return NORMAL;
 #endif
 }
 
@@ -2554,6 +2566,7 @@ nuts:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_sock_func, "listen");
+    return NORMAL;
 #endif
 }
 
@@ -2633,6 +2646,7 @@ badexit:
 
 #else
     DIE(aTHX_ PL_no_sock_func, "accept");
+    return NORMAL;
 #endif
 }
 
@@ -2657,6 +2671,7 @@ nuts:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_sock_func, "shutdown");
+    return NORMAL;
 #endif
 }
 
@@ -2734,6 +2749,7 @@ nuts2:
 
 #else
     DIE(aTHX_ PL_no_sock_func, PL_op_desc[PL_op->op_type]);
+    return NORMAL;
 #endif
 }
 
@@ -2798,6 +2814,7 @@ nuts2:
 
 #else
     DIE(aTHX_ PL_no_sock_func, PL_op_desc[PL_op->op_type]);
+    return NORMAL;
 #endif
 }
 
@@ -2817,9 +2834,8 @@ PP(pp_stat)
 	if (PL_op->op_type == OP_LSTAT) {
 	    if (gv != PL_defgv) {
 	    do_fstat_warning_check:
-		if (ckWARN(WARN_IO))
-		    Perl_warner(aTHX_ packWARN(WARN_IO),
-			"lstat() on filehandle %s", gv ? GvENAME(gv) : "");
+		Perl_ck_warner(aTHX_ packWARN(WARN_IO),
+			       "lstat() on filehandle %s", gv ? GvENAME(gv) : "");
 	    } else if (PL_laststype != OP_LSTAT)
 		Perl_croak(aTHX_ "The stat preceding lstat() wasn't an lstat");
 	}
@@ -3553,6 +3569,7 @@ PP(pp_chroot)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "chroot");
+    return NORMAL;
 #endif
 }
 
@@ -3627,6 +3644,7 @@ PP(pp_link)
 {
     /* Have neither.  */
     DIE(aTHX_ PL_no_func, PL_op_desc[PL_op->op_type]);
+    return NORMAL;
 }
 #endif
 
@@ -3826,9 +3844,10 @@ PP(pp_open_dir)
     if (!io)
 	goto nope;
 
-    if ((IoIFP(io) || IoOFP(io)) && ckWARN2(WARN_IO, WARN_DEPRECATED))
-	Perl_warner(aTHX_ packWARN2(WARN_IO, WARN_DEPRECATED),
-		"Opening filehandle %s also as a directory", GvENAME(gv));
+    if ((IoIFP(io) || IoOFP(io)))
+	Perl_ck_warner_d(aTHX_ packWARN2(WARN_IO, WARN_DEPRECATED),
+			 "Opening filehandle %s also as a directory",
+			 GvENAME(gv));
     if (IoDIRP(io))
 	PerlDir_close(IoDIRP(io));
     if (!(IoDIRP(io) = PerlDir_open(dirname)))
@@ -3841,6 +3860,7 @@ nope:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_dir_func, "opendir");
+    return NORMAL;
 #endif
 }
 
@@ -3848,6 +3868,7 @@ PP(pp_readdir)
 {
 #if !defined(Direntry_t) || !defined(HAS_READDIR)
     DIE(aTHX_ PL_no_dir_func, "readdir");
+    return NORMAL;
 #else
 #if !defined(I_DIRENT) && !defined(VMS)
     Direntry_t *readdir (DIR *);
@@ -3862,10 +3883,8 @@ PP(pp_readdir)
     register IO * const io = GvIOn(gv);
 
     if (!io || !IoDIRP(io)) {
-        if(ckWARN(WARN_IO)) {
-            Perl_warner(aTHX_ packWARN(WARN_IO),
-                "readdir() attempted on invalid dirhandle %s", GvENAME(gv));
-        }
+	Perl_ck_warner(aTHX_ packWARN(WARN_IO),
+		       "readdir() attempted on invalid dirhandle %s", GvENAME(gv));
         goto nope;
     }
 
@@ -3915,10 +3934,8 @@ PP(pp_telldir)
     register IO * const io = GvIOn(gv);
 
     if (!io || !IoDIRP(io)) {
-        if(ckWARN(WARN_IO)) {
-            Perl_warner(aTHX_ packWARN(WARN_IO),
-	        "telldir() attempted on invalid dirhandle %s", GvENAME(gv));
-        }
+	Perl_ck_warner(aTHX_ packWARN(WARN_IO),
+		       "telldir() attempted on invalid dirhandle %s", GvENAME(gv));
         goto nope;
     }
 
@@ -3930,6 +3947,7 @@ nope:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_dir_func, "telldir");
+    return NORMAL;
 #endif
 }
 
@@ -3942,10 +3960,8 @@ PP(pp_seekdir)
     register IO * const io = GvIOn(gv);
 
     if (!io || !IoDIRP(io)) {
-	if(ckWARN(WARN_IO)) {
-	    Perl_warner(aTHX_ packWARN(WARN_IO),
-                "seekdir() attempted on invalid dirhandle %s", GvENAME(gv));
-        }
+	Perl_ck_warner(aTHX_ packWARN(WARN_IO),
+		       "seekdir() attempted on invalid dirhandle %s", GvENAME(gv));
         goto nope;
     }
     (void)PerlDir_seek(IoDIRP(io), along);
@@ -3957,6 +3973,7 @@ nope:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_dir_func, "seekdir");
+    return NORMAL;
 #endif
 }
 
@@ -3968,10 +3985,8 @@ PP(pp_rewinddir)
     register IO * const io = GvIOn(gv);
 
     if (!io || !IoDIRP(io)) {
-	if(ckWARN(WARN_IO)) {
-	    Perl_warner(aTHX_ packWARN(WARN_IO),
-	        "rewinddir() attempted on invalid dirhandle %s", GvENAME(gv));
-	}
+	Perl_ck_warner(aTHX_ packWARN(WARN_IO),
+		       "rewinddir() attempted on invalid dirhandle %s", GvENAME(gv));
 	goto nope;
     }
     (void)PerlDir_rewind(IoDIRP(io));
@@ -3982,6 +3997,7 @@ nope:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_dir_func, "rewinddir");
+    return NORMAL;
 #endif
 }
 
@@ -3993,10 +4009,8 @@ PP(pp_closedir)
     register IO * const io = GvIOn(gv);
 
     if (!io || !IoDIRP(io)) {
-	if(ckWARN(WARN_IO)) {
-	    Perl_warner(aTHX_ packWARN(WARN_IO),
-                "closedir() attempted on invalid dirhandle %s", GvENAME(gv));
-        }
+	Perl_ck_warner(aTHX_ packWARN(WARN_IO),
+		       "closedir() attempted on invalid dirhandle %s", GvENAME(gv));
         goto nope;
     }
 #ifdef VOID_CLOSEDIR
@@ -4016,6 +4030,7 @@ nope:
     RETPUSHUNDEF;
 #else
     DIE(aTHX_ PL_no_dir_func, "closedir");
+    return NORMAL;
 #endif
 }
 
@@ -4062,6 +4077,7 @@ PP(pp_fork)
     RETURN;
 #  else
     DIE(aTHX_ PL_no_func, "fork");
+    return NORMAL;
 #  endif
 #endif
 }
@@ -4091,6 +4107,7 @@ PP(pp_wait)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "wait");
+    return NORMAL;
 #endif
 }
 
@@ -4121,6 +4138,7 @@ PP(pp_waitpid)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "waitpid");
+    return NORMAL;
 #endif
 }
 
@@ -4326,6 +4344,7 @@ PP(pp_getppid)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "getppid");
+    return NORMAL;
 #endif
 }
 
@@ -4347,6 +4366,7 @@ PP(pp_getpgrp)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "getpgrp()");
+    return NORMAL;
 #endif
 }
 
@@ -4380,6 +4400,7 @@ PP(pp_setpgrp)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "setpgrp()");
+    return NORMAL;
 #endif
 }
 
@@ -4393,6 +4414,7 @@ PP(pp_getpriority)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "getpriority()");
+    return NORMAL;
 #endif
 }
 
@@ -4408,6 +4430,7 @@ PP(pp_setpriority)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "setpriority()");
+    return NORMAL;
 #endif
 }
 
@@ -4458,9 +4481,19 @@ PP(pp_tms)
     RETURN;
 #   else
     DIE(aTHX_ "times not implemented");
+    return NORMAL;
 #   endif
 #endif /* HAS_TIMES */
 }
+
+/* The 32 bit int year limits the times we can represent to these
+   boundaries with a few days wiggle room to account for time zone
+   offsets
+*/
+/* Sat Jan  3 00:00:00 -2147481748 */
+#define TIME_LOWER_BOUND -67768100567755200.0
+/* Sun Dec 29 12:00:00  2147483647 */
+#define TIME_UPPER_BOUND  67767976233316800.0
 
 PP(pp_gmtime)
 {
@@ -4484,21 +4517,33 @@ PP(pp_gmtime)
     else {
 	double input = Perl_floor(POPn);
 	when = (Time64_T)input;
-	if (when != input && ckWARN(WARN_OVERFLOW)) {
-	    Perl_warner(aTHX_ packWARN(WARN_OVERFLOW),
-			"%s(%.0f) too large", opname, input);
+	if (when != input) {
+	    Perl_ck_warner(aTHX_ packWARN(WARN_OVERFLOW),
+			   "%s(%.0f) too large", opname, input);
 	}
     }
 
-    if (PL_op->op_type == OP_LOCALTIME)
-        err = S_localtime64_r(&when, &tmbuf);
-    else
-	err = S_gmtime64_r(&when, &tmbuf);
+    if ( TIME_LOWER_BOUND > when ) {
+	Perl_ck_warner(aTHX_ packWARN(WARN_OVERFLOW),
+		       "%s(%.0f) too small", opname, when);
+	err = NULL;
+    }
+    else if( when > TIME_UPPER_BOUND ) {
+	Perl_ck_warner(aTHX_ packWARN(WARN_OVERFLOW),
+		       "%s(%.0f) too large", opname, when);
+	err = NULL;
+    }
+    else {
+	if (PL_op->op_type == OP_LOCALTIME)
+	    err = S_localtime64_r(&when, &tmbuf);
+	else
+	    err = S_gmtime64_r(&when, &tmbuf);
+    }
 
-    if (err == NULL && ckWARN(WARN_OVERFLOW)) {
+    if (err == NULL) {
 	/* XXX %lld broken for quads */
-	Perl_warner(aTHX_ packWARN(WARN_OVERFLOW),
-		    "%s(%.0f) failed", opname, (double)when);
+	Perl_ck_warner(aTHX_ packWARN(WARN_OVERFLOW),
+		       "%s(%.0f) failed", opname, (double)when);
     }
 
     if (GIMME != G_ARRAY) {	/* scalar context */
@@ -4554,6 +4599,7 @@ PP(pp_alarm)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "alarm");
+    return NORMAL;
 #endif
 }
 
@@ -4623,6 +4669,7 @@ PP(pp_semget)
     RETURN;
 #else
     DIE(aTHX_ "System V IPC is not implemented on this machine");
+    return NORMAL;
 #endif
 }
 
@@ -4683,7 +4730,7 @@ PP(pp_ghostent)
     struct hostent *gethostbyname(Netdb_name_t);
     struct hostent *gethostent(void);
 #endif
-    struct hostent *hent;
+    struct hostent *hent = NULL;
     unsigned long len;
 
     EXTEND(SP, 10);
@@ -4758,6 +4805,7 @@ PP(pp_ghostent)
     RETURN;
 #else
     DIE(aTHX_ PL_no_sock_func, "gethostent");
+    return NORMAL;
 #endif
 }
 
@@ -4831,6 +4879,7 @@ PP(pp_gnetent)
     RETURN;
 #else
     DIE(aTHX_ PL_no_sock_func, "getnetent");
+    return NORMAL;
 #endif
 }
 
@@ -4891,6 +4940,7 @@ PP(pp_gprotoent)
     RETURN;
 #else
     DIE(aTHX_ PL_no_sock_func, "getprotoent");
+    return NORMAL;
 #endif
 }
 
@@ -4966,6 +5016,7 @@ PP(pp_gservent)
     RETURN;
 #else
     DIE(aTHX_ PL_no_sock_func, "getservent");
+    return NORMAL;
 #endif
 }
 
@@ -4977,6 +5028,7 @@ PP(pp_shostent)
     RETSETYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "sethostent");
+    return NORMAL;
 #endif
 }
 
@@ -4988,6 +5040,7 @@ PP(pp_snetent)
     RETSETYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "setnetent");
+    return NORMAL;
 #endif
 }
 
@@ -4999,6 +5052,7 @@ PP(pp_sprotoent)
     RETSETYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "setprotoent");
+    return NORMAL;
 #endif
 }
 
@@ -5010,6 +5064,7 @@ PP(pp_sservent)
     RETSETYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "setservent");
+    return NORMAL;
 #endif
 }
 
@@ -5022,6 +5077,7 @@ PP(pp_ehostent)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "endhostent");
+    return NORMAL;
 #endif
 }
 
@@ -5034,6 +5090,7 @@ PP(pp_enetent)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "endnetent");
+    return NORMAL;
 #endif
 }
 
@@ -5046,6 +5103,7 @@ PP(pp_eprotoent)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "endprotoent");
+    return NORMAL;
 #endif
 }
 
@@ -5058,6 +5116,7 @@ PP(pp_eservent)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_sock_func, "endservent");
+    return NORMAL;
 #endif
 }
 
@@ -5291,6 +5350,7 @@ PP(pp_gpwent)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, PL_op_desc[PL_op->op_type]);
+    return NORMAL;
 #endif
 }
 
@@ -5302,6 +5362,7 @@ PP(pp_spwent)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_func, "setpwent");
+    return NORMAL;
 #endif
 }
 
@@ -5313,6 +5374,7 @@ PP(pp_epwent)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_func, "endpwent");
+    return NORMAL;
 #endif
 }
 
@@ -5387,6 +5449,7 @@ PP(pp_ggrent)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, PL_op_desc[PL_op->op_type]);
+    return NORMAL;
 #endif
 }
 
@@ -5398,6 +5461,7 @@ PP(pp_sgrent)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_func, "setgrent");
+    return NORMAL;
 #endif
 }
 
@@ -5409,6 +5473,7 @@ PP(pp_egrent)
     RETPUSHYES;
 #else
     DIE(aTHX_ PL_no_func, "endgrent");
+    return NORMAL;
 #endif
 }
 
@@ -5424,6 +5489,7 @@ PP(pp_getlogin)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "getlogin");
+    return NORMAL;
 #endif
 }
 
@@ -5522,6 +5588,7 @@ PP(pp_syscall)
     RETURN;
 #else
     DIE(aTHX_ PL_no_func, "syscall");
+    return NORMAL;
 #endif
 }
 
@@ -5534,6 +5601,7 @@ PP(pp_syscall)
 static int
 fcntl_emulate_flock(int fd, int operation)
 {
+    int res;
     struct flock flock;
 
     switch (operation & ~LOCK_NB) {
@@ -5553,7 +5621,10 @@ fcntl_emulate_flock(int fd, int operation)
     flock.l_whence = SEEK_SET;
     flock.l_start = flock.l_len = (Off_t)0;
 
-    return fcntl(fd, (operation & LOCK_NB) ? F_SETLK : F_SETLKW, &flock);
+    res = fcntl(fd, (operation & LOCK_NB) ? F_SETLK : F_SETLKW, &flock);
+    if (res == -1 && ((errno == EAGAIN) || (errno == EACCES)))
+	errno = EWOULDBLOCK;
+    return res;
 }
 
 #endif /* FCNTL_EMULATE_FLOCK */

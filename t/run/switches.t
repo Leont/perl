@@ -193,6 +193,9 @@ SWTESTPM
     is( $r, "<$package><foo><bar>", '-m with import parameters' );
     push @tmpfiles, $filename;
 
+  {
+    local $TODO = '';  # these work on VMS
+
     is( runperl( switches => [ '-MTie::Hash' ], stderr => 1, prog => 1 ),
 	  '', "-MFoo::Bar allowed" );
 
@@ -220,6 +223,7 @@ SWTESTPM
 		   prog => 'die "oops"' ),
 	  qr/Module name required with -M option\b/,
   	  "-M- not allowed" );
+  }  # disable TODO on VMS
 }
 
 # Tests for -V
@@ -263,8 +267,10 @@ SWTESTPM
     # there are definitely known build configs where this test will fail
     # DG/UX comes to mind. Maybe we should remove these special cases?
     my $v = sprintf "%vd", $^V;
+    my $ver = $Config{PERL_VERSION};
+    my $rel = $Config{PERL_SUBVERSION};
     like( runperl( switches => ['-v'] ),
-	  qr/This is perl, v$v(?:[-\w]+| \([^)]+\))? built for \Q$Config{archname}\E.+Copyright.+Larry Wall.+Artistic License.+GNU General Public License/s,
+	  qr/This is perl 5, version \Q$ver\E, subversion \Q$rel\E \(v\Q$v\E(?:[-*\w]+| \([^)]+\))?\) built for \Q$Config{archname}\E.+Copyright.+Larry Wall.+Artistic License.+GNU General Public License/s,
           '-v looks okay' );
 
 }
@@ -329,6 +335,8 @@ __EOF__
 }
 
 # Tests for -E
+
+$TODO = '';  # the -E tests work on VMS
 
 $r = runperl(
     switches	=> [ '-E', '"say q(Hello, world!)"']

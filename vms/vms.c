@@ -2885,7 +2885,11 @@ int test_unix_status;
 
 
 /* default piping mailbox size */
-#define PERL_BUFSIZ        512
+#ifdef __VAX
+#  define PERL_BUFSIZ        512
+#else
+#  define PERL_BUFSIZ        8192
+#endif
 
 
 static void
@@ -11289,7 +11293,8 @@ int my_fclose(FILE *fp) {
 int
 my_fwrite(const void *src, size_t itmsz, size_t nitm, FILE *dest)
 {
-  register char *cp, *end, *cpd, *data;
+  register char *cp, *end, *cpd;
+  char *data;
   register unsigned int fd = fileno(dest);
   register unsigned int fdoff = fd / sizeof(unsigned int);
   int retval;

@@ -506,12 +506,16 @@ package main;
 tie my %h => "TieScalar";
 $h{key1} = "val1";
 $h{key2} = "val2";
-print scalar %h, "\n";
+print scalar %h, "\n"
+    if %h; # this should also call SCALAR but implicitly
 %h = ();
-print scalar %h, "\n";
+print scalar %h, "\n"
+    if !%h; # this should also call SCALAR but implicitly
 EXPECT
 SCALAR
+SCALAR
 2/2
+SCALAR
 SCALAR
 0
 ########
@@ -584,13 +588,19 @@ print $h.$h;
 EXPECT
 01
 ########
+# Bug 53482 (and maybe others)
 sub TIESCALAR { my $foo = $_[1]; bless \$foo, $_[0] }
 sub FETCH { ${$_[0]} }
-tie my $x, "main", 2;
-tie my $y, "main", 8;
-print $x | $y;
+tie my $x1, "main", 2;
+tie my $y1, "main", 8;
+print $x1 | $y1;
+print $x1 | $y1;
+tie my $x2, "main", "2";
+tie my $y2, "main", "8";
+print $x2 | $y2;
+print $x2 | $y2;
 EXPECT
-10
+1010::
 ########
 # Bug 36267
 sub TIEHASH  { bless {}, $_[0] }
